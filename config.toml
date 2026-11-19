@@ -1,0 +1,53 @@
+# Paths are relative to this file. Override with PPS_CONFIG; no global changes.
+[paths]
+data = "data"
+models = "models"
+cache = "cache"
+logs = "logs"
+
+[service]
+host = "127.0.0.1"
+port = 8765
+max_text_chars = 50000
+max_reference_bytes = 15728640
+max_queue = 32
+worker_timeout_seconds = 240
+# Keeps the loaded engine across languages of one video (a reload costs ~100-150 s).
+worker_idle_seconds = 600
+resource_retries = 2
+resource_retry_seconds = 10
+# CPU alignment of job N runs while job N+1 synthesizes; a job completes only after its alignment.
+background_alignment = true
+# Same whisper_json.py, checkpoint and CPU settings, kept loaded; the one-shot call stays the fallback.
+# (Kept out of [alignment]: that table is part of the synthesis cache key.)
+resident_aligner = true
+
+[resources]
+# Conservative starting thresholds, not measured model requirements.
+# min_ram_gib gates a fresh engine load; min_ram_gib_loaded is the floor for keeping a loaded one
+# (default 2.0 in pps/resources.py, same default as MainClip's client). Left commented on purpose:
+# this table is part of MainClip's PPS provider identity, so adding a key changes that identity.
+min_ram_gib = 3.0
+# min_ram_gib_loaded = 2.0
+min_vram_gib = 5.0
+min_disk_gib = 10.0
+
+[chatterbox]
+python = ".venvs/chatterbox/Scripts/python.exe"
+source = "vendor/chatterbox/src"
+model = "models/chatterbox-v3"
+t3_model = "v3"
+
+[cosyvoice]
+python = ".venvs/cosyvoice/Scripts/python.exe"
+source = "vendor/CosyVoice"
+model = "models/Fun-CosyVoice3-0.5B-2512"
+repo_id = "FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
+
+[alignment]
+# Offline CPU Whisper, decoded PCM input; no global PATH changes or downloads.
+command = ".venvs/cosyvoice/Scripts/python.exe"
+script = "scripts/whisper_json.py"
+model = "base"
+model_dir = "models/whisper"
+timeout_seconds = 120

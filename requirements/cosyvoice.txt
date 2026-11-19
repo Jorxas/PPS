@@ -1,0 +1,27 @@
+# Minimal native Windows inference, without training or experimental acceleration.
+conformer==0.3.2
+diffusers==0.29.0
+HyperPyYAML==1.2.3
+inflect==7.3.1
+librosa==0.10.2
+modelscope==1.20.0
+numpy==1.26.4
+omegaconf==2.3.0
+onnxruntime==1.18.0
+openai-whisper==20231117
+protobuf==4.25.0
+soundfile==0.12.1
+transformers==4.51.3
+x-transformers==2.11.24
+setuptools==80.9.0
+wheel==0.45.1
+psutil==7.2.2
+# Required by classes referenced by the official HyperPyYAML, even for inference.
+pyarrow==18.1.0
+pyworld==0.3.4
+lightning==2.2.4
+hydra-core==1.3.2
+rich==13.7.1
+matplotlib==3.7.5
+gdown==5.1.0
+wget==3.2

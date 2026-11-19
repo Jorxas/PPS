@@ -1,0 +1,2 @@
+# Whisper 20231117 imports pkg_resources during build and at runtime.
+setuptools==80.9.0

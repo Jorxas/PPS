@@ -1,0 +1,15 @@
+# Minimal FR/EN inference dependencies from the pinned upstream pyproject.
+# UI and language-specific optional tokenizers are intentionally excluded.
+numpy==1.26.4
+librosa==0.11.0
+s3tokenizer
+transformers==5.2.0
+diffusers==0.29.0
+conformer==0.3.2
+safetensors==0.5.3
+pyloudnorm
+omegaconf
+soundfile
+pydub==0.25.1
+setuptools
+psutil==7.2.2
