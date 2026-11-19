@@ -6,6 +6,8 @@ Ein unabhängiger Dienst verwaltet Referenzstimmen, Syntheseaufträge, Ressource
 
 [Interaktive Demo](https://jorxas.github.io/PPS/) · [Portfolio](https://jorxas.github.io/Portfolio/) · [Architektur](ARCHITEKTUR.md) · [Prüfstatus](PRUEFUNG.md)
 
+[![Geprüfte Browser-Demo mit synthetischen Beispielen](docs/vorschau.png)](https://jorxas.github.io/PPS/)
+
 ## Ausprobieren
 
 Die vollständige Projektseite mit Demo liegt in `site/index.html`. Sie arbeitet mit erfundenen Daten. Externe Dienste, Anbieter-Konten und Hintergrundaufträge werden dort nicht ausgeführt. Die Oberfläche kennzeichnet die jeweiligen Simulationen.
