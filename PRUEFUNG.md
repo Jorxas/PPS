@@ -6,7 +6,7 @@ Stand: 19. November 2026.
 
 ## Browser-Demo
 
-Die öffentliche Projektseite wurde bei 390 und 1440 Pixeln in Chrome geprüft: Code- und Demoverweise, Größenanpassung, interaktive Eingaben, JavaScript-Fehler, Content-Security-Policy und ausgehende Netzwerkanfragen. Die Prüfung blockiert fremde Netzwerkanfragen. Die Seite lädt keine externen Schriften oder Tracker.
+Die öffentliche Demo führt die echte Weboberfläche mit erfundenen Fällen aus. `node tools/demo-pruefen.cjs` prüft die gebaute Demo unter dem Pfad `/PPS/` in Chrome: Start mit den Beispielfällen, ladbare Testsignale, Dauerschätzung, die ehrliche Meldung statt einer Synthese, Bewertung, Stimmen, Stimmenvorbereitung, Verlauf, Einstellungen sowie 390 Pixel Breite ohne horizontalen Überlauf. Jede Laufzeitfehlermeldung und jede Anfrage an einen fremden Server lässt die Prüfung scheitern; zusätzlich werden die gebauten Dateien auf private Pfade, Adressen und Schlüsselmuster durchsucht. Die Demo lädt keine externen Schriften oder Tracker. Stand dieser Browserprüfung: 22. November 2026.
 
 ## Reproduzierbarkeit
 
@@ -14,6 +14,6 @@ Die Startbefehle stehen in README.md. Test- und Browserprotokolle bleiben lokal;
 
 ## Grenzen
 
-Ein lokal bestandener Test mit Fixtures ist kein Nachweis einer produktiven Cloud-Freigabe, einer echten Modellausführung oder eines Kundenbetriebs. Die Browser-Demo kennzeichnet gespeicherte beziehungsweise simulierte Ergebnisse.
+Ein lokal bestandener Test mit Fixtures ist kein Nachweis einer produktiven Cloud-Freigabe, einer echten Modellausführung oder eines Kundenbetriebs. Die Browser-Demo führt keine Synthese aus. Ihre Zahlen, Zeiten, Wortgrenzen und Bewertungen sind erfundene Beispielwerte, die Audios Testsignale.
 
 Die öffentliche Kopie wurde vor dem ersten Push anhand ihrer Git-Dateiliste auf private Benutzerpfade, persönliche Hosts, E-Mail-Adressen und bekannte Schlüsselpräfixe geprüft. Ein solcher Scan ergänzt die begrenzte Dateiauswahl und ersetzt keine unabhängige Sicherheitsprüfung.

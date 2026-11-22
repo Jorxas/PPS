@@ -6,19 +6,22 @@ Ein unabhängiger Dienst verwaltet Referenzstimmen, Syntheseaufträge, Ressource
 
 [Interaktive Demo](https://jorxas.github.io/PPS/) · [Portfolio](https://jorxas.github.io/Portfolio/) · [Architektur](ARCHITEKTUR.md) · [Prüfstatus](PRUEFUNG.md)
 
-[![Geprüfte Browser-Demo mit synthetischen Beispielen](docs/vorschau.png)](https://jorxas.github.io/PPS/)
+[![Die echte PPS-Oberfläche mit erfundenen Beispielfällen](docs/vorschau.png)](https://jorxas.github.io/PPS/)
 
 ## Ausprobieren
 
-Die vollständige Projektseite mit Demo liegt in `site/index.html`. Sie arbeitet mit erfundenen Daten. Externe Dienste, Anbieter-Konten und Hintergrundaufträge werden dort nicht ausgeführt. Die Oberfläche kennzeichnet die jeweiligen Simulationen.
+Die öffentliche Demo führt die echte Weboberfläche des Dienstes aus (`pps/web.html`, `pps/static/*`), unverändert. Nur der lokale Dienst fehlt: `demo/demo-start.js` beantwortet die Anfragen an `/v1/*` mit erfundenen Fällen (drei Stimmen, ein Vergleich, fünf Aufträge, eine Stimmenvorbereitung). Die Audios sind kurze synthetische Testsignale, keine Sprache. Eine echte Synthese, ein Dateiimport und die Dokumentationsseite sind dort nicht verfügbar und als solche gekennzeichnet; es werden keine Modelle, Konten oder Anbieter angesprochen.
 
-## Demo lokal öffnen
+## Demo bauen und prüfen
 
 ~~~sh
-python -m http.server 8080 --bind 127.0.0.1 --directory site
+node tools/demo-bauen.mjs
+cd tools/frontend && npm ci && cd ../..
+node tools/demo-pruefen.cjs
+python -m http.server 8080 --bind 127.0.0.1 --directory dist
 ~~~
 
-Danach http://127.0.0.1:8080 öffnen. Die Demo benötigt weder Konten noch Modellgewichte.
+`dist/` danach unter http://127.0.0.1:8080 öffnen. Das Bauen benötigt nur Node.js; die Browserprüfung zusätzlich einen installierten Chrome oder Edge (`BROWSER_PFAD`).
 
 ## Lokal prüfen
 

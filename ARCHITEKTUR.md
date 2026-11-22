@@ -4,7 +4,7 @@ Ein unabhängiger Dienst verwaltet Referenzstimmen, Syntheseaufträge, Ressource
 
 ## Verantwortungsgrenzen
 
-Die lokale Anwendung enthält den eigentlichen Dienst beziehungsweise Motor. Die öffentliche Browser-Demo erklärt einen begrenzten Ablauf. Ihre Daten stammen nicht aus einer produktiven Installation.
+Die lokale Anwendung enthält den eigentlichen Dienst beziehungsweise Motor. Die öffentliche Browser-Demo zeigt dieselbe Weboberfläche ohne Dienst: `demo/demo-start.js` ersetzt die Antworten von `/v1/*` durch erfundene Fälle. Ihre Daten stammen nicht aus einer produktiven Installation.
 
 ## Prüfbarkeit
 

@@ -2,10 +2,13 @@
   "name": "pps-frontend-checks",
   "private": true,
   "scripts": {
-    "test": "node --test --test-reporter=spec --test-timeout=15000 ../../tests/frontend.test.cjs"
+    "test": "node --test --test-reporter=spec --test-timeout=15000 ../../tests/frontend.test.cjs",
+    "demo:bauen": "node ../demo-bauen.mjs",
+    "demo:pruefen": "node ../demo-pruefen.cjs"
   },
   "devDependencies": {
     "jsdom": "26.0.0",
-    "prettier": "3.4.2"
+    "prettier": "3.4.2",
+    "puppeteer-core": "25.4.0"
   }
 }
