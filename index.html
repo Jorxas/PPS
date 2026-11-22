@@ -1,1 +1,481 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ein lokales Sprachstudio mit Referenzverwaltung, getrennten Modellprozessen und Wortausrichtung. PPS verbindet bestehende Sprachmodelle mit einem nachvollziehbaren Produktionsablauf."><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"><meta name="referrer" content="no-referrer"><title>PPS · Projekt & Demo · Jordan Freddy</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="stil.css"><script src="demo.js" defer></script></head><body data-projekt="PPS"><a class="sprung" href="#demo">Zur Demo springen</a><header class="kopf"><div class="rahmen"><a class="marke" href="#"><span class="symbol">P</span>PPS</a><nav aria-label="Projekt"><a href="#vorgehen">Vorgehen</a><a href="https://jorxas.github.io/Portfolio/projects/">Portfolio</a><a class="code" href="https://github.com/Jorxas/PPS">Code auf GitHub</a></nav></div></header><main><div class="rahmen"><section class="einleitung bereit"><p class="rubrik">Audio · lokale KI-Infrastruktur</p><h1>Aus Text wird ein überprüfbarer Sprachauftrag.</h1><p class="text">Ein lokales Sprachstudio mit Referenzverwaltung, getrennten Modellprozessen und Wortausrichtung. PPS verbindet bestehende Sprachmodelle mit einem nachvollziehbaren Produktionsablauf.</p><div class="techniken"><span>Python</span><span>FastAPI</span><span>Chatterbox</span><span>CosyVoice</span></div><div class="aktionen"><a href="#demo" class="knopf primaer">Demo ausprobieren</a><a href="https://github.com/Jorxas/PPS" class="knopf">Quellcode ansehen</a></div></section><div class="ablaufstreifen"><span><i class="punkt" aria-hidden="true"></i>Referenz freigeben</span><span><i class="punkt" aria-hidden="true"></i>Auftrag vorbereiten</span><span><i class="punkt" aria-hidden="true"></i>Wörter überprüfen</span></div><section class="abschnitt" id="demo"><div class="abschnittskopf"><div><p class="rubrik">Das Projekt erleben</p><h2>Syntheseauftrag vorbereiten</h2><p>Erkunden Sie den Ablauf eines Sprachauftrags. Die Warteschlange und Modellantworten werden simuliert. Diese Seite erzeugt keine Sprache und lädt keine Modelle.</p></div><span class="etikett">Backend simuliert</span></div><div class="hinweis" role="note"><strong>Öffentliche Demo.</strong> Chatterbox, CosyVoice und Whisper sind fremde Modelle. Reale Synthese benötigt separat installierte Modelle, ausreichende lokale Ressourcen und die Berechtigung für die Referenzstimme.</div><div class="demofenster"><div class="fensterkopf"><b>PPS / interaktiver Einblick</b><span>Keine produktiven Konten verbunden</span></div><div class="arbeitsbereich"><div class="eingabe"><div class="feld"><label for="motor">Modelladapter</label><select id="motor"><option value="chatterbox">Chatterbox</option><option value="cosyvoice">CosyVoice</option></select></div><div class="feld"><label for="sprache">Zielsprache</label><select id="sprache"><option value="fr">Französisch</option><option value="en">Englisch</option></select></div><div class="feld"><label for="text">Beispieltext</label><textarea id="text" maxlength="500">Bonjour, voici un exemple de narration pour notre atelier.</textarea></div><div class="aufgabe"><input id="recht" type="checkbox"><label for="recht">Die hypothetische Referenz darf verwendet werden.</label></div><button class="knopf primaer" id="vorbereiten">Beispielauftrag vorbereiten</button></div><div class="ausgabe"><h3>Ein Auftrag, mehrere Prüfungen</h3><div class="welle" aria-label="Illustration einer Wellenform, keine Audiodaten"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="statuszeile"><b>Eingabe und Berechtigung</b><span>Offen</span></div><div class="statuszeile"><b>Warteschlange</b><span>Offen</span></div><div class="statuszeile"><b>Getrennter Modellprozess</b><span>Offen</span></div><div class="statuszeile"><b>Wortausrichtung</b><span>Offen</span></div><div class="statuszeile"><b>Manuelle Qualitätsprüfung</b><span>Offen</span></div><div class="aktionen"><button class="knopf primaer" id="weiter">Nächster Demoschritt</button><button class="knopf" id="zuruecksetzen">Zurücksetzen</button></div><p class="live" id="stand" role="status" aria-live="polite"></p><pre class="skript" id="parameter">Noch kein Beispielauftrag.</pre></div></div></div></section><section class="abschnitt" id="vorgehen"><p class="rubrik">Vom Problem zur Umsetzung</p><h2>Die Technik hinter dem Ablauf.</h2><div class="karten"><div class="karte"><h3>Referenz</h3><p>Audio wird importiert, analysiert und mit einer ausdrücklichen Berechtigung einer Stimme zugeordnet.</p></div><div class="karte"><h3>Synthese</h3><p>Modellprozesse, Warteschlange, Cache und Ressourcenprüfungen bleiben vom API-Dienst getrennt.</p></div><div class="karte"><h3>Überprüfung</h3><p>Wortgrenzen und Unsicherheiten werden sichtbar. Ein fragwürdiges Alignment wird nicht als sichere Untertiteldatei ausgegeben.</p></div></div></section><section class="abschnitt zweispaltig"><div><p class="rubrik">Im Repository nachvollziehen</p><h2>So ist der Code aufgebaut.</h2><ul class="quellliste"><li>pps/api.py — HTTP-Vertrag und Fehlerzustände</li><li>pps/manager.py — getrennte Modellprozesse</li><li>pps/media.py — Import und Wiederaufnahme</li><li>pps/alignment.py — Ausrichtung und Unsicherheiten</li></ul><div class="aktionen"><a class="knopf" href="https://github.com/Jorxas/PPS/blob/main/PRUEFUNG.md">Prüfungen und Grenzen</a></div></div><aside class="grenzen"><h3>Was dieser Einblick zeigt</h3><p>Erkunden Sie den Ablauf eines Sprachauftrags. Die Warteschlange und Modellantworten werden simuliert. Diese Seite erzeugt keine Sprache und lädt keine Modelle.</p><h3>Für die lokale Anwendung</h3><p>Chatterbox, CosyVoice und Whisper sind fremde Modelle. Reale Synthese benötigt separat installierte Modelle, ausreichende lokale Ressourcen und die Berechtigung für die Referenzstimme.</p><a href="https://github.com/Jorxas/PPS/blob/main/README.md">Installation und Projektbeschreibung</a></aside></section></div></main><footer class="fuss"><div class="rahmen"><span>PPS · Eigenes Integrations- und Softwareprojekt von Jordan Freddy</span><a href="https://jorxas.github.io/Portfolio/">Zurück zum Portfolio</a></div></footer></body></html>
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PPS · Synthèse vocale</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./static/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Aller au contenu</a>
+    <aside class="sidebar" aria-label="Navigation principale">
+      <a class="brand" href="#synthesis"
+        ><span class="brand-mark" aria-hidden="true">∥</span
+        ><span>PPS<small>Votre studio vocal</small></span></a
+      >
+      <div class="nav-label">STUDIO</div>
+      <nav>
+        <button
+          class="nav-item selected"
+          data-view="synthesis"
+          aria-current="page"
+        >
+          <span aria-hidden="true">◉</span> Synthèse vocale</button
+        ><button class="nav-item" data-view="voices">
+          <span aria-hidden="true">♬</span> Mes voix
+          <span id="voice-count" class="nav-count">0</span></button
+        ><button class="nav-item" data-view="history">
+          <span aria-hidden="true">◷</span> Historique
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" data-view="settings">
+          <span aria-hidden="true">⚙</span> Réglages
+        </button>
+        <div class="local-caption">
+          <span class="status-dot"></span> Studio local<small
+            >Vos fichiers restent sur ce PC.</small
+          >
+        </div>
+      </div>
+    </aside>
+    <main id="workspace">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">CRÉEZ AVEC VOTRE VOIX</p>
+          <h1 id="page-title" tabindex="-1">Synthèse vocale</h1>
+          <p id="page-description" class="muted">
+            Écrivez votre texte. Choisissez une voix. Écoutez.
+          </p>
+        </div>
+        <button class="secondary" data-add-voice>+ Ajouter une voix</button>
+      </header>
+      <section id="view-synthesis" class="view" aria-labelledby="page-title">
+        <div class="composer-layout">
+          <section class="editor panel" aria-label="Texte à prononcer">
+            <div class="editor-heading">
+              <label for="text">Votre texte</label
+              ><span class="editor-hint">Texte → voix (Long-Form supporté)</span>
+            </div>
+            <textarea
+              id="text"
+              maxlength="50000"
+              placeholder="Écrivez ou collez ici le texte que votre voix doit prononcer (courts ou longs scripts jusqu'à 50 000 caractères)…"
+            ></textarea>
+            <div class="editor-footer">
+              <span id="text-count" class="muted">0 / 50 000 caractères (0 mot)</span>
+              <span id="duration-estimate" class="muted">Durée estimée : ~0.0 s</span>
+              <span class="muted">Français ou anglais</span>
+            </div>
+            <div id="duration-alert" class="status" role="status" aria-live="polite" style="display:none;margin-top:8px;"></div>
+            <div class="generate-bar">
+              <button id="generate" class="primary">
+                Générer la voix <span aria-hidden="true">↗</span></button
+              ><button id="compare" class="secondary">
+                Comparer les deux moteurs</button
+              ><button id="cancel" class="secondary" hidden>Annuler</button>
+            </div>
+            <div
+              id="message"
+              class="status"
+              role="status"
+              aria-live="polite"
+            ></div>
+          </section>
+          <aside
+            class="composer-options panel"
+            aria-label="Choix de la voix et du moteur"
+          >
+            <h2>Personnaliser</h2>
+            <label for="voice">Voix</label
+            ><select id="voice">
+              <option value="">Chargement des voix…</option></select
+            ><button class="text-button" data-add-voice>
+              + Ajouter une nouvelle voix
+            </button>
+            <p id="voice-readiness" class="field-help" role="status"></p>
+            <div class="field-label" id="engine-label">Moteur vocal</div>
+            <div
+              class="engine-picker"
+              role="radiogroup"
+              aria-labelledby="engine-label"
+            >
+              <label class="engine-choice"
+                ><input
+                  type="radio"
+                  name="engine-choice"
+                  value="chatterbox"
+                  checked
+                /><span
+                  ><strong>Chatterbox</strong
+                  ><small>Moteur Chatterbox V3</small></span
+                ></label
+              ><label class="engine-choice"
+                ><input
+                  type="radio"
+                  name="engine-choice"
+                  value="cosyvoice"
+                /><span
+                  ><strong>CosyVoice</strong
+                  ><small>Moteur CosyVoice 3</small></span
+                ></label
+              >
+            </div>
+            <select id="engine" hidden aria-label="Moteur sélectionné">
+              <option value="chatterbox">Chatterbox</option>
+              <option value="cosyvoice">CosyVoice</option></select
+            <label for="language">Langue du texte</label
+            ><select id="language">
+              <option value="fr">Français</option>
+              <option value="en">Anglais</option>
+            </select>
+            <label for="target-duration">Durée cible souhaitée (facultatif)</label>
+            <input
+              id="target-duration"
+              type="number"
+              min="1"
+              max="3600"
+              step="1"
+              placeholder="Ex. 60 pour 1 min (secondes)"
+            />
+            <label for="alignment-mode">Mode d’alignement</label>
+            <select id="alignment-mode">
+              <option value="full">Complet (Whisper + sous-titres MainClip)</option>
+              <option value="quick">Aperçu rapide (TTS seul, sans Whisper)</option>
+            </select>
+            <details class="option-details">
+              <summary>Références utilisées</summary>
+              <p class="field-help">
+                Un extrait de votre voix sert de modèle. Vous pouvez en choisir
+                un différent pour chaque moteur.
+              </p>
+              <label for="chatterbox-reference">Chatterbox</label
+              ><select id="chatterbox-reference">
+                <option value="">Référence enregistrée</option></select
+              ><label for="cosyvoice-reference">CosyVoice</label
+              ><select id="cosyvoice-reference">
+                <option value="">Référence enregistrée</option>
+              </select>
+              <div
+                id="reference-choice-message"
+                class="status"
+                role="status"
+              ></div>
+            </details>
+            <details id="reference-preview" class="option-details">
+              <summary>Écouter la voix originale</summary>
+              <div id="reference-result">
+                <span class="muted"
+                  >Choisissez une voix pour écouter son extrait.</span
+                >
+              </div>
+            </details>
+          </aside>
+        </div>
+        <section class="output-section" aria-labelledby="results-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="results-title">Vos résultats</h2>
+              <p class="muted">Écoutez, puis téléchargez votre audio.</p>
+            </div>
+            <span class="subtle-pill">WAV / MP3</span>
+          </div>
+          <div class="results">
+            <article id="chatterbox-result" class="card result-card">
+              <h3>Chatterbox</h3>
+              <p class="empty-result">Votre audio Chatterbox apparaîtra ici.</p>
+            </article>
+            <article id="cosyvoice-result" class="card result-card">
+              <h3>CosyVoice</h3>
+              <p class="empty-result">Votre audio CosyVoice apparaîtra ici.</p>
+            </article>
+          </div>
+        </section>
+        <details class="advanced-panel">
+          <summary>Tester plusieurs extraits d’une même voix</summary>
+          <p class="muted">
+            Sélectionnez 2 à 8 extraits. Chaque essai utilisera le texte saisi
+            au-dessus.
+          </p>
+          <div id="trial-reference-list"></div>
+          <label for="trial-engine">Moteurs à tester</label
+          ><select id="trial-engine">
+            <option value="both">Chatterbox et CosyVoice</option>
+            <option value="chatterbox">Chatterbox</option>
+            <option value="cosyvoice">CosyVoice</option>
+          </select>
+          <div class="row actions">
+            <button id="trial-start" class="secondary" type="button">
+              Comparer les extraits sélectionnés</button
+            ><button id="trial-cancel" class="secondary" type="button" hidden>
+              Annuler ces essais
+            </button>
+          </div>
+          <div id="trial-message" role="status" class="status"></div>
+          <div id="trial-results"></div>
+          <details>
+            <summary>Essais précédents</summary>
+            <div id="trial-history"></div>
+          </details>
+        </details>
+      </section>
+      <section
+        id="view-voices"
+        class="view"
+        hidden
+        aria-labelledby="page-title"
+      >
+        <div
+          id="preparation-message"
+          class="status"
+          role="status"
+          aria-live="polite"
+        ></div>
+        <div id="voice-preparations" aria-live="polite"></div>
+        <div id="voice-library" class="voice-grid"></div>
+        <section id="media-panel" class="panel import-panel">
+          <details id="voice-import">
+            <summary>+ Ajouter des vidéos ou des audios</summary>
+            <p class="muted">
+              Donnez un nom et ajoutez une vidéo ou un audio. PPS prépare
+              automatiquement la voix pour Chatterbox et CosyVoice.
+            </p>
+            <form id="media-import-form">
+              <div class="row">
+                <div>
+                  <label for="media-voice">Pour quelle voix ?</label
+                  ><select id="media-voice">
+                    <option value="">Créer une nouvelle voix</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="media-name">Nom de la voix</label
+                  ><input
+                    id="media-name"
+                    maxlength="120"
+                    placeholder="Ex. Ma voix, Narrateur…"
+                    required
+                  />
+                </div>
+              </div>
+              <label for="media-files">Vos fichiers</label>
+              <div class="file-drop">
+                <span class="file-icon" aria-hidden="true">↑</span
+                ><strong>Ajoutez vos vidéos ou vos audios</strong
+                ><span class="field-help"
+                  >Plusieurs fichiers possibles, même de longues vidéos.</span
+                ><input
+                  id="media-files"
+                  type="file"
+                  multiple
+                  required
+                  aria-describedby="media-file-list"
+                />
+              </div>
+              <div id="media-file-list" class="metrics"></div>
+              <div class="row">
+                <div>
+                  <label for="media-language">Langue de la voix</label
+                  ><select id="media-language">
+                    <option value="fr">Français</option>
+                    <option value="en">Anglais</option>
+                  </select>
+                </div>
+              </div>
+              <details class="source-notes">
+                <summary>
+                  Ajouter une précision sur les fichiers (facultatif)
+                </summary>
+                <label for="media-origin"
+                  >À qui appartient cette voix ? (facultatif)</label
+                >
+                <select id="media-origin">
+                  <option value="">Ne pas préciser</option>
+                  <option value="own">C’est ma propre voix</option>
+                  <option value="permission">
+                    J’ai l’accord de cette personne
+                  </option>
+                </select>
+                <label for="media-source">D’où viennent vos fichiers ?</label
+                ><input
+                  id="media-source"
+                  maxlength="1500"
+                  placeholder="Ex. Mes enregistrements, entretien avec l’accord de Marie…"
+                />
+              </details>
+              <input id="media-declaration" type="hidden" /><label
+                class="consent"
+                ><input id="media-authorized" type="checkbox" required /> Je
+                confirme avoir le droit de cloner et d’utiliser cette
+                voix.</label
+              >
+              <div class="row actions">
+                <button id="media-upload" type="submit">Créer ma voix</button
+                ><button
+                  id="media-upload-cancel"
+                  type="button"
+                  class="secondary"
+                  hidden
+                >
+                  Interrompre le transfert
+                </button>
+              </div>
+              <p class="field-help">
+                PPS choisit un extrait et prépare sa transcription. Une seule
+                confirmation à l’écoute, puis cette voix est réutilisable pour
+                tous vos textes.
+              </p>
+            </form>
+          </details>
+          <div
+            id="media-message"
+            class="status"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <details id="manual-media">
+            <summary>
+              Options avancées : fichiers, extraits et recherches
+            </summary>
+            <div id="media-library-header" hidden>
+              <h2>Fichiers importés</h2>
+              <label for="media-filter">Afficher les fichiers de</label
+              ><select id="media-filter">
+                <option value="">Toutes les voix</option>
+              </select>
+            </div>
+            <div id="media-library"></div>
+          </details>
+        </section>
+        <details class="advanced-panel">
+          <summary>J’ai déjà un extrait audio prêt (3 à 30 secondes)</summary>
+          <form id="import-form">
+            <label for="name">Nom de la voix</label
+            ><input
+              id="name"
+              name="name"
+              required
+              maxlength="120"
+              placeholder="Ma voix française"
+            /><label for="reference">Extrait audio</label
+            ><input
+              id="reference"
+              name="file"
+              type="file"
+              accept="audio/*"
+              required
+            /><small
+              >Un extrait propre de 8 à 10 secondes est recommandé. Maximum 30 s
+              / 15 Mo.</small
+            ><label for="voice-language">Langue de l’extrait</label
+            ><select id="voice-language" name="language">
+              <option value="fr">Français</option>
+              <option value="en">Anglais</option></select
+            ><label for="transcription"
+              >Mots exacts prononcés dans l’extrait</label
+            ><textarea
+              id="transcription"
+              name="transcription"
+              placeholder="Écoutez et recopiez les mots exacts. Nécessaire pour CosyVoice."
+              maxlength="5000"
+            ></textarea
+            ><label class="consent"
+              ><input
+                id="authorized"
+                type="checkbox"
+                name="authorized"
+                value="true"
+                required
+              />
+              Je confirme avoir le droit de cloner et d’utiliser cette
+              voix.</label
+            ><label for="declaration">Précisez votre accord</label
+            ><input
+              id="declaration"
+              name="declaration"
+              required
+              maxlength="2000"
+              placeholder="Ex. C’est ma propre voix, utilisée avec mon accord."
+            /><button type="submit" class="actions">Enregistrer la voix</button>
+            <div id="import-message" role="status" class="status"></div>
+          </form>
+        </details>
+      </section>
+      <section
+        id="view-history"
+        class="view"
+        hidden
+        aria-labelledby="page-title"
+      >
+        <div class="panel">
+          <h2>Générations précédentes</h2>
+          <p class="muted">
+            Retrouvez vos audios et téléchargez-les à nouveau.
+          </p>
+          <div id="history" class="muted">Chargement de l’historique…</div>
+        </div>
+      </section>
+      <section
+        id="view-settings"
+        class="view"
+        hidden
+        aria-labelledby="page-title"
+      >
+        <div class="settings-grid">
+          <div class="panel">
+            <h2>Réglages des moteurs</h2>
+            <p class="muted">
+              Les valeurs par défaut suffisent pour commencer.
+            </p>
+            <label for="exaggeration">Chatterbox · Expressivité</label
+            ><input
+              id="exaggeration"
+              type="number"
+              min="0"
+              max="1"
+              step="0.1"
+              value="0.5"
+            /><small>De 0 à 1 · Paramètre exaggeration.</small
+            ><label for="cfg">Chatterbox · Guidage</label
+            ><input
+              id="cfg"
+              type="number"
+              min="0"
+              max="1"
+              step="0.1"
+              value="0.5"
+            /><small>De 0 à 1 · Paramètre cfg_weight.</small
+            ><label for="speed">CosyVoice · Vitesse</label
+            ><input
+              id="speed"
+              type="number"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value="1"
+            /><small>1 = vitesse normale.</small>
+          </div>
+          <div class="panel">
+            <h2>Service local</h2>
+            <div id="resources" class="metrics">Connexion au service…</div>
+            <div id="engines" class="status"></div>
+            <button id="refresh" class="secondary">Actualiser l’état</button>
+            <p class="field-help">
+              Une seule génération à la fois. Le premier essai peut prendre plus
+              de temps pendant le chargement du moteur.
+            </p>
+            <a class="text-link" href="/docs" target="_blank" rel="noopener"
+              >Documentation API ↗</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="./demo-start.js"></script>
+    <script src="./static/app.js"></script>
+    <script src="./static/media.js"></script>
+    <script src="./static/preparation.js"></script>
+  </body>
+</html>
