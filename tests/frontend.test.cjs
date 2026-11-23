@@ -114,9 +114,10 @@ async function setup({
   preparations = [],
   respond,
   hash = "",
+  search = "",
 } = {}) {
   const dom = new JSDOM(html, {
-      url: "http://localhost:8765/" + hash,
+      url: "http://localhost:8765/" + search + hash,
       runScripts: "outside-only",
       pretendToBeVisual: true,
     }),
@@ -181,7 +182,7 @@ async function setup({
     return { ok: true, json: async () => structuredClone(data) };
   };
   try {
-    for (const name of ["app.js", "media.js", "preparation.js"])
+    for (const name of ["i18n.js", "app.js", "media.js", "preparation.js"])
       vm.runInContext(source(name), dom.getInternalVMContext(), {
         filename: name,
       });
@@ -214,9 +215,9 @@ test("Studio opens on synthesis, navigation keeps text and supports deep links",
     const text = d.getElementById("text");
     text.value = "Bonjour";
     text.dispatchEvent(new w.Event("input"));
-    assert.match(d.getElementById("text-count").textContent, /7 \/ 50 000/);
+    assert.match(d.getElementById("text-count").textContent, /7 \/ 50\.000/);
     d.querySelector('[data-view="voices"]').click();
-    assert.equal(d.getElementById("page-title").textContent, "Mes voix");
+    assert.equal(d.getElementById("page-title").textContent, "Meine Stimmen");
     assert.equal(w.location.hash, "#voices");
     d.querySelector('[data-view="synthesis"]').click();
     assert.equal(text.value, "Bonjour");
@@ -244,7 +245,7 @@ test("No voices or no saved excerpt gives an actionable empty state", async () =
       assert.equal(app.d.getElementById("compare").disabled, true);
       assert.match(
         app.d.getElementById("voice-readiness").textContent,
-        /Ajoutez|Préparez cette voix/,
+        /Fügen Sie eine Stimme hinzu|Bereiten Sie diese Stimme/,
       );
     } finally {
       await app.close();
@@ -268,7 +269,7 @@ test("Chatterbox and CosyVoice select real engines, transcription gate remains e
     assert.equal(d.getElementById("generate").disabled, true);
     assert.match(
       d.getElementById("voice-readiness").textContent,
-      /mots exacts/,
+      /genauen Wörter/,
     );
     w.selectEngine("chatterbox");
     assert.equal(
@@ -293,7 +294,7 @@ test("Previous comparison restores playable WAVs, downloads and collapsed review
       assert.equal(card.querySelectorAll("a.link").length, 2);
       assert.equal(card.querySelector(".technical-details").open, false);
       assert.equal(card.querySelector("details").open, false);
-      assert.equal(card.querySelector(".badge").textContent, "Prêt à écouter");
+      assert.equal(card.querySelector(".badge").textContent, "Bereit zum Anhören");
     }
     app.w.navigate("history");
     app.d.querySelector("#history button").click();
@@ -370,7 +371,7 @@ test("Source import requires consent, records provenance and automatically prepa
     d.getElementById("media-name").value = "Narratrice";
     d.getElementById("media-language").value = "en";
     d.getElementById("media-source").value =
-      "Entretien enregistré avec son accord.";
+      "Interview mit Zustimmung aufgenommen.";
     w.TextEncoder = TextEncoder;
     Object.defineProperty(w.crypto, "subtle", {
       value: require("node:crypto").webcrypto.subtle,
@@ -387,9 +388,9 @@ test("Source import requires consent, records provenance and automatically prepa
     );
     assert.equal(upload.body.authorized, true);
     assert.equal(upload.body.language, "en");
-    assert.match(upload.body.declaration, /obtenu l’accord/);
-    assert.match(upload.body.declaration, /Entretien enregistré/);
-    assert.doesNotMatch(upload.body.declaration, /Ma propre voix/);
+    assert.match(upload.body.declaration, /deren Zustimmung/);
+    assert.match(upload.body.declaration, /Interview mit Zustimmung/);
+    assert.doesNotMatch(upload.body.declaration, /Meine eigene Stimme/);
     assert.equal(
       requests.filter(
         (r) => r.p === "/voice-preparations" && r.method === "POST",
@@ -436,13 +437,13 @@ test("Only latest analysis is foregrounded; excerpt verification remains explici
     assert.equal(setup.open, false);
     assert.match(
       setup.querySelector("summary").textContent,
-      /Choisir cet extrait/,
+      /Diesen Ausschnitt für meine Stimme wählen/,
     );
     [...setup.querySelectorAll("button")]
-      .find((b) => b.textContent === "Enregistrer cet extrait")
+      .find((b) => b.textContent === "Diesen Ausschnitt speichern")
       .click();
     await settle();
-    assert.match(setup.textContent, /confirmez/);
+    assert.match(setup.textContent, /bestätigen/);
     assert.equal(
       requests.filter((r) => r.p.endsWith("/reference") && r.method === "POST")
         .length,
@@ -501,25 +502,25 @@ test("Automatically prepared reference needs just one explicit confirmation and 
       words = card.querySelector("textarea");
     assert.equal(card.querySelectorAll("input[type=checkbox]").length, 0);
     assert.equal(card.querySelectorAll(":scope > audio").length, 1);
-    words.value = "Les mots corrigés.";
+    words.value = "Die korrigierten Wörter.";
     d.dispatchEvent(new w.Event("pps-preparation-refresh"));
     await settle();
     assert.equal(card.querySelector("textarea"), words);
-    assert.equal(words.value, "Les mots corrigés.");
+    assert.equal(words.value, "Die korrigierten Wörter.");
     const confirm = [...card.querySelectorAll("button")].find(
-      (b) => b.textContent === "Confirmer cette voix et ces mots",
+      (b) => b.textContent === "Diese Stimme und diese Wörter bestätigen",
     );
     confirm.click();
     await settle();
     const sent = requests.find(
       (r) => r.p.endsWith("/confirm") && r.method === "POST",
     );
-    assert.equal(sent.body.transcription, "Les mots corrigés.");
+    assert.equal(sent.body.transcription, "Die korrigierten Wörter.");
     assert.equal(sent.body.speaker_confirmed, true);
     assert.equal(sent.body.transcription_verified, true);
     assert.equal(d.getElementById("view-synthesis").hidden, false);
     assert.equal(d.getElementById("voice").value, voice.id);
-    assert.match(d.getElementById("message").textContent, /tous vos textes/);
+    assert.match(d.getElementById("message").textContent, /alle Ihre Texte/);
     assert.equal(
       requests.filter((r) => r.p === "/syntheses" && r.method === "POST")
         .length,
@@ -568,7 +569,7 @@ test("Voice preparation resumes from saved state after page reload; multiple tra
     assert.ok(card);
     assert.equal(card.querySelector("select").value, "");
     const continueButton = [...card.querySelectorAll("button")].find(
-      (b) => b.textContent === "Continuer la préparation",
+      (b) => b.textContent === "Vorbereitung fortsetzen",
     );
     continueButton.click();
     await settle();
@@ -580,6 +581,78 @@ test("Voice preparation resumes from saved state after page reload; multiple tra
       (r) => r.p === "/voice-preparations" && r.method === "POST",
     );
     assert.deepEqual(sent.body.track_indices, { [media.id]: 0 });
+  } finally {
+    await app.close();
+  }
+});
+
+test("German is the default language; every dictionary entry has both languages with the same placeholders", async () => {
+  const app = await setup();
+  try {
+    const { w, d } = app;
+    assert.equal(d.documentElement.lang, "de");
+    assert.equal(w.getLang(), "de");
+    assert.equal(d.getElementById("page-title").textContent, "Sprachsynthese");
+    assert.equal(d.title, "PPS · Sprachsynthese");
+    assert.match(d.querySelector('[data-view="history"]').textContent, /Verlauf/);
+    const names = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
+    for (const [key, entry] of Object.entries(w.ppsDictionary)) {
+      assert.equal(entry.length, 2, key);
+      assert.ok(entry[0] && entry[1], key + " fehlt in einer Sprache");
+      assert.equal(names(entry[0]), names(entry[1]), key + ": Platzhalter unterschiedlich");
+    }
+    for (const el of d.querySelectorAll("[data-i18n],[data-i18n-ph],[data-i18n-aria],[data-i18n-title]"))
+      for (const attr of ["data-i18n", "data-i18n-ph", "data-i18n-aria", "data-i18n-title"])
+        if (el.hasAttribute(attr)) assert.ok(w.ppsDictionary[el.getAttribute(attr)], "Schlüssel fehlt: " + el.getAttribute(attr));
+  } finally {
+    await app.close();
+  }
+});
+test("?lang=fr opens in French; switching rebuilds generated content in both directions without errors", async () => {
+  const app = await setup({
+    search: "?lang=fr",
+    comparisons: [{ status: "completed", jobs: [job(), job("cosyvoice")] }],
+    mediaData: { media: [media], analyses: [analysis] },
+    preparations: [preparation],
+  });
+  try {
+    const { w, d } = app;
+    assert.equal(d.documentElement.lang, "fr");
+    assert.equal(d.getElementById("page-title").textContent, "Synthèse vocale");
+    assert.equal(d.querySelector('[data-view="voices"]').textContent.includes("Mes voix"), true);
+    assert.match(d.getElementById("voice-readiness").textContent, /1 extrait disponible/);
+    assert.equal(d.querySelector("#chatterbox-result .badge").textContent, "Prêt à écouter");
+    assert.equal(d.getElementById("language").value, "fr");
+    const text = d.getElementById("text");
+    text.value = "x".repeat(1500);
+    text.dispatchEvent(new w.Event("input"));
+    assert.match(d.getElementById("text-count").textContent, /1\s500 \/ 50\s000 caractères \(1 mot\)/);
+    w.navigate("voices");
+    assert.match(d.querySelector(".voice-card").textContent, /Français · 1 extrait/);
+    assert.match(d.querySelector(".preparation-card").textContent, /Votre voix est presque prête/);
+    assert.match(d.querySelector(".candidate-card summary").textContent, /Choisir cet extrait pour ma voix/);
+    assert.equal(w.location.search, "?lang=fr");
+
+    w.setLang("de");
+    await settle();
+    await until(() => d.querySelector("#chatterbox-result .badge")?.textContent === "Bereit zum Anhören");
+    assert.equal(d.documentElement.lang, "de");
+    assert.equal(w.location.search, "");
+    assert.equal(w.location.hash, "#voices");
+    assert.equal(d.getElementById("page-title").textContent, "Meine Stimmen");
+    assert.match(d.getElementById("voice-readiness").textContent, /1 Ausschnitt verfügbar/);
+    assert.match(d.getElementById("text-count").textContent, /1\.500 \/ 50\.000 Zeichen \(1 Wort\)/);
+    assert.match(d.querySelector(".voice-card").textContent, /Französisch · 1 Ausschnitt/);
+    await until(() => /Ihre Stimme ist fast fertig/.test(d.querySelector(".preparation-card")?.textContent || ""));
+    assert.match(d.querySelector(".candidate-card summary").textContent, /Diesen Ausschnitt für meine Stimme wählen/);
+    assert.equal(d.getElementById("generate").textContent.replace(/\s+/g, " ").trim(), "Stimme erzeugen ↗");
+    assert.equal(d.getElementById("language").value, "de");
+
+    w.setLang("fr");
+    await until(() => d.querySelector("#chatterbox-result .badge")?.textContent === "Prêt à écouter");
+    assert.equal(d.getElementById("page-title").textContent, "Mes voix");
+    assert.equal(w.location.search, "?lang=fr");
+    assert.equal(d.querySelectorAll(".error").length, 0, "keine Fehlermeldung nach dem Wechseln");
   } finally {
     await app.close();
   }

@@ -32,13 +32,15 @@
   };
   const name = (id) =>
     Array.from($("media-voice").options).find((o) => o.value === id)
-      ?.textContent || "Votre voix";
+      ?.textContent || tx("prep.voice");
   const location = (p) =>
-    `${p.filename} · à ${Math.floor(p.start_seconds / 60)}:${Math.floor(
-      p.start_seconds % 60,
-    )
-      .toString()
-      .padStart(2, "0")} · ${(p.end_seconds - p.start_seconds).toFixed(1)} s`;
+    tx("prep.loc", {
+      f: p.filename,
+      t: `${Math.floor(p.start_seconds / 60)}:${Math.floor(p.start_seconds % 60)
+        .toString()
+        .padStart(2, "0")}`,
+      d: fixed(p.end_seconds - p.start_seconds, 1),
+    });
 
   window.startVoicePreparation = async (
     voiceId,
@@ -67,24 +69,20 @@
   function alternatives(card, p, required = false) {
     const suggestions = p.suggestions || [];
     const box = required ? elem("div") : elem("details");
-    if (!required) box.append(elem("summary", "Choisir un autre extrait"));
+    if (!required) box.append(elem("summary", tx("prep.other")));
     if (!suggestions.length) {
       box.append(
-        elem(
-          "p",
-          "Aucun passage de parole utilisable n’a été trouvé. Essayez un autre fichier, ou choisissez un passage dans les options avancées.",
-          "field-help",
-        ),
+        elem("p", tx("prep.none"), "field-help"),
       );
       card.append(box);
       return;
     }
     const select = elem("select");
-    select.setAttribute("aria-label", "Extrait à utiliser pour cette voix");
+    select.setAttribute("aria-label", tx("prep.sel.aria"));
     suggestions.forEach((c, i) => {
       const o = elem(
         "option",
-        location(c) + (c.issues.length ? " · à vérifier à l’écoute" : ""),
+        location(c) + (c.issues.length ? tx("prep.check") : ""),
       );
       o.value = i;
       select.append(o);
@@ -108,7 +106,7 @@
     box.append(
       select,
       preview,
-      action("Choisir cet extrait", async () => {
+      action(tx("prep.choose"), async () => {
         const c = suggestions[Number(select.value)];
         await api(
           "/voice-preparations/" + p.id + "/candidate",
@@ -151,7 +149,11 @@
       if (progress) progress.value = p.progress;
       const label = card.querySelector(".preparation-progress");
       if (label)
-        label.textContent = `${Math.round(p.progress * 100)} % de l’audio analysé · ${p.files_completed}/${p.files_total} fichier(s)`;
+        label.textContent = tx("prep.progress", {
+          p: Math.round(p.progress * 100),
+          c: p.files_completed,
+          n: p.files_total,
+        });
       return;
     }
     card.dataset.signature = signature;
@@ -161,23 +163,27 @@
         elem(
           "p",
           p.status === "transcribing"
-            ? "L’extrait est choisi. PPS prépare automatiquement les mots prononcés…"
-            : "PPS recherche automatiquement un bon extrait de cette voix. Vous pouvez laisser la préparation se terminer.",
+            ? tx("prep.transcribing")
+            : tx("prep.analyzing"),
           "muted",
         ),
       );
       const progress = elem("progress");
       progress.max = 1;
       progress.value = p.progress;
-      progress.setAttribute("aria-label", "Audio analysé");
+      progress.setAttribute("aria-label", tx("prep.aria"));
       card.append(
         progress,
         elem(
           "p",
-          `${Math.round(p.progress * 100)} % de l’audio analysé · ${p.files_completed}/${p.files_total} fichier(s)`,
+          tx("prep.progress", {
+            p: Math.round(p.progress * 100),
+            c: p.files_completed,
+            n: p.files_total,
+          }),
           "metrics preparation-progress",
         ),
-        action("Annuler la préparation", async () => {
+        action(tx("prep.cancel"), async () => {
           await api("/voice-preparations/" + p.id + "/cancel", {
             method: "POST",
           });
@@ -186,11 +192,7 @@
       );
     } else if (p.status === "needs_confirmation") {
       card.append(
-        elem(
-          "p",
-          "Votre voix est presque prête. Écoutez cet extrait et vérifiez les mots ci-dessous.",
-          "muted",
-        ),
+        elem("p", tx("prep.almost"), "muted"),
       );
       const player = elem("audio");
       player.controls = true;
@@ -200,55 +202,41 @@
       const words = elem("textarea");
       words.value = p.transcription?.text || "";
       words.maxLength = 5000;
-      words.setAttribute("aria-label", "Mots prononcés dans l’extrait");
-      words.placeholder = "Corrigez ici les mots si nécessaire";
-      const label = elem(
-        "label",
-        "Mots prononcés (corrigez seulement si nécessaire)",
-      );
+      words.setAttribute("aria-label", tx("prep.words.aria"));
+      words.placeholder = tx("prep.words.ph");
+      const label = elem("label", tx("prep.words.label"));
       label.append(words);
       card.append(label);
       const language = elem("select");
-      language.setAttribute("aria-label", "Langue de la voix");
-      for (const [value, text] of [
-        ["fr", "Français"],
-        ["en", "Anglais"],
-      ]) {
-        const o = elem("option", text);
+      language.setAttribute("aria-label", tx("prep.lang.aria"));
+      for (const value of ["de", "en", "fr"]) {
+        const o = elem("option", langName(value));
         o.value = value;
         language.append(o);
       }
-      language.value = ["fr", "en"].includes(p.transcription?.language)
+      language.value = ["de", "en", "fr"].includes(p.transcription?.language)
         ? p.transcription.language
-        : "fr";
+        : getLang();
       const extra = elem("details");
-      extra.append(elem("summary", "Langue de cet extrait"), language);
+      extra.append(elem("summary", tx("prep.lang.sum")), language);
       card.append(extra);
       if (
         p.selection.issues.length ||
-        !["fr", "en"].includes(p.transcription?.language) ||
+        !["de", "en", "fr"].includes(p.transcription?.language) ||
         p.transcription?.segments?.some((s) =>
           s.words?.some((w) => w.probability != null && w.probability < 0.6),
         )
       )
         card.append(
-          elem(
-            "p",
-            "La détection est incertaine : vérifiez particulièrement la personne, les mots et la langue.",
-            "notice",
-          ),
+          elem("p", tx("prep.uncertain"), "notice"),
         );
       card.append(
-        elem(
-          "p",
-          "En confirmant, vous validez que l’extrait contient uniquement la voix autorisée, sans musique gênante, et que les mots sont exacts.",
-          "field-help",
-        ),
+        elem("p", tx("prep.confirm.help"), "field-help"),
         action(
-          "Confirmer cette voix et ces mots",
+          tx("prep.confirm"),
           async () => {
             if (!words.value.trim())
-              throw Error("Indiquez les mots prononcés dans cet extrait.");
+              throw Error(tx("prep.err.words"));
             const v = await api(
               "/voice-preparations/" + p.id + "/confirm",
               json("POST", {
@@ -262,10 +250,7 @@
             $("voice").value = v.id;
             $("voice").dispatchEvent(new Event("change"));
             navigate("synthesis");
-            $("message").textContent =
-              "« " +
-              v.name +
-              " » est enregistrée. Utilisez cette voix pour tous vos textes.";
+            $("message").textContent = tx("prep.saved", { name: v.name });
             $("text").focus();
             card.remove();
             await refreshPreparations();
@@ -276,25 +261,25 @@
       alternatives(card, p);
     } else if (p.status === "needs_track") {
       card.append(
-        elem(
-          "p",
-          "Cette vidéo contient plusieurs pistes audio. Choisissez celle qui contient la voix à cloner.",
-          "muted",
-        ),
+        elem("p", tx("prep.needs_track"), "muted"),
       );
       const sources = (await api("/media")).media,
         choices = {};
       for (const id of p.missing_track_media_ids) {
         const source = sources.find((m) => m.id === id),
           select = elem("select");
-        select.setAttribute("aria-label", "Piste de " + source.filename);
-        const empty = elem("option", "Choisir la piste…");
+        select.setAttribute("aria-label", tx("prep.track.aria", { f: source.filename }));
+        const empty = elem("option", tx("prep.track.pick"));
         empty.value = "";
         select.append(empty);
         for (const t of source.probe.audio_tracks) {
           const o = elem(
             "option",
-            `Piste ${t.index} · ${t.tags?.language || ""} ${t.tags?.title || ""}`,
+            tx("prep.track.opt", {
+              i: t.index,
+              lang: t.tags?.language || "",
+              title: t.tags?.title || "",
+            }),
           );
           o.value = t.index;
           select.append(o);
@@ -306,10 +291,10 @@
       }
       card.append(
         action(
-          "Continuer la préparation",
+          tx("prep.continue"),
           async () => {
             if (Object.values(choices).some((s) => s.value === ""))
-              throw Error("Choisissez une piste pour chaque vidéo.");
+              throw Error(tx("prep.err.track"));
             await window.startVoicePreparation(p.voice_id, p.media_ids, {
               ...p.track_indices,
               ...Object.fromEntries(
@@ -322,11 +307,7 @@
       );
     } else if (p.status === "needs_selection") {
       card.append(
-        elem(
-          "p",
-          "Plusieurs voix ou un fond gênant sont possibles. Choisissez le passage de la personne à cloner ; PPS préparera ensuite sa transcription.",
-          "muted",
-        ),
+        elem("p", tx("prep.needs_sel"), "muted"),
       );
       alternatives(card, p, true);
     } else {
@@ -334,15 +315,15 @@
         elem(
           "p",
           p.status === "cancelled"
-            ? "Préparation annulée. Vos fichiers sont conservés."
-            : "Préparation interrompue. Vous pouvez la reprendre.",
+            ? tx("prep.cancelled")
+            : tx("prep.interrupted"),
           "muted",
         ),
       );
       if (p.error) card.append(elem("p", p.error.message, "error"));
       card.append(
         action(
-          "Reprendre la préparation",
+          tx("prep.resume"),
           async () => {
             await api("/voice-preparations/" + p.id + "/resume", {
               method: "POST",
@@ -390,5 +371,11 @@
     refreshPreparations(),
   );
   document.addEventListener("pps-voice-cards", hideDuplicatePendingCards);
+  // Sprachwechsel: die Karten neu aufbauen (die Signatur verhindert sonst das Ersetzen).
+  document.addEventListener("pps-lang", () => {
+    for (const card of document.querySelectorAll("[data-preparation]"))
+      card.dataset.signature = "";
+    refreshPreparations();
+  });
   refreshPreparations();
 })();

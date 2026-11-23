@@ -1,6 +1,6 @@
 // Baut die öffentliche Demo nach dist/ (Aufruf im Repository-Wurzelverzeichnis: node tools/demo-bauen.mjs).
 // Die echte Oberfläche (pps/web.html und pps/static/*) wird unverändert kopiert. Nur die absoluten Pfade der HTML-Datei
-// werden relativ gemacht, damit sie unter /PPS/ auf GitHub Pages funktioniert, und demo/demo-start.js wird vor
+// werden relativ gemacht, damit sie unter /PPS/ auf GitHub Pages funktioniert, und demo/demo-start.js wird nach i18n.js und vor
 // app.js geladen. Swagger-UI (pps/static/swagger-*) gehört nicht zur Demo.
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const wurzel = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(wurzel, "dist");
-const statisch = ["app.css", "app.js", "media.js", "preparation.js"];
+const statisch = ["app.css", "i18n.js", "app.js", "media.js", "preparation.js"];
 
 let html = await readFile(path.join(wurzel, "pps", "web.html"), "utf8");
 function ersetzen(vorher, nachher) {
@@ -20,6 +20,7 @@ ersetzen('<link rel="stylesheet" href="/static/app.css" />',
 // Die Demo lädt nichts von fremden Servern; blob: gilt nur für die erzeugten Testsignale.
 ersetzen('<meta charset="utf-8" />',
   `<meta charset="utf-8" />\n    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'" />`);
+ersetzen('<script src="/static/i18n.js"></script>', '<script src="./static/i18n.js"></script>');
 ersetzen('<script src="/static/app.js"></script>', '<script src="./demo-start.js"></script>\n    <script src="./static/app.js"></script>');
 ersetzen('<script src="/static/media.js"></script>', '<script src="./static/media.js"></script>');
 ersetzen('<script src="/static/preparation.js"></script>', '<script src="./static/preparation.js"></script>');

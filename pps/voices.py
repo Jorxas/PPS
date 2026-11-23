@@ -10,7 +10,7 @@ from .storage import identity
 def register(store, cfg, upload, name, language, transcription, authorized, declaration, voice_id=None):
     if not authorized or not declaration.strip():
         raise PPSError("AUTHORIZATION_REQUIRED", "Une autorisation explicite de clonage et d'utilisation est nécessaire.", 422)
-    if language not in ("fr", "en") or not name.strip() or len(name) > 120 or len(declaration) > 2000 or len(transcription) > 5000:
+    if language not in ("fr", "en", "de") or not name.strip() or len(name) > 120 or len(declaration) > 2000 or len(transcription) > 5000:
         raise PPSError("VOICE_INVALID", "Nom, langue ou transcription non valide.", 422)
     identifier = voice_id or identity("voice")
     previous = store.get("voices", identifier) if voice_id else None

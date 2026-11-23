@@ -5,38 +5,26 @@ let active = [],
   generating = false,
   selectedVoice = null,
   referenceRequest = 0;
-const statuses = {
-  queued: "En attente",
-  loading: "Chargement du moteur",
-  running: "En cours",
-  synthesizing: "Génération en cours",
-  exporting: "Préparation audio",
-  aligning: "Préparation des sous-titres",
-  completed: "Prêt à écouter",
-  failed: "Échec",
-  cancelled: "Annulé",
-  paused: "En pause",
-};
+const statusKeys = [
+  "queued",
+  "loading",
+  "running",
+  "synthesizing",
+  "exporting",
+  "aligning",
+  "completed",
+  "failed",
+  "cancelled",
+  "paused",
+];
 function statusLabel(value) {
-  return statuses[value] || "En cours";
+  return tx("st." + (statusKeys.includes(value) ? value : "running"));
 }
-const pages = {
-  synthesis: [
-    "Synthèse vocale",
-    "Écrivez votre texte. Choisissez une voix. Écoutez.",
-  ],
-  voices: [
-    "Mes voix",
-    "Ajoutez une voix et choisissez les extraits qui lui ressemblent le mieux.",
-  ],
-  history: ["Historique", "Tous vos essais, au même endroit."],
-  settings: [
-    "Réglages",
-    "Personnalisez les moteurs et consultez l’état du service.",
-  ],
-};
+const pageViews = ["synthesis", "voices", "history", "settings"];
+let currentView = "synthesis";
 function navigate(view, focus = true) {
-  if (!pages[view]) view = "synthesis";
+  if (!pageViews.includes(view)) view = "synthesis";
+  currentView = view;
   for (const section of document.querySelectorAll(".view"))
     section.hidden = section.id !== "view-" + view;
   for (const item of document.querySelectorAll("[data-view]")) {
@@ -45,9 +33,9 @@ function navigate(view, focus = true) {
     if (on) item.setAttribute("aria-current", "page");
     else item.removeAttribute("aria-current");
   }
-  $("page-title").textContent = pages[view][0];
-  $("page-description").textContent = pages[view][1];
-  document.title = "PPS · " + pages[view][0];
+  $("page-title").textContent = tx("page." + view + ".t");
+  $("page-description").textContent = tx("page." + view + ".d");
+  document.title = "PPS · " + tx("page." + view + ".t");
   if (window.location.hash !== "#" + view)
     window.history.replaceState(null, "", "#" + view);
   if (focus) $("page-title").focus();
@@ -92,12 +80,14 @@ function updateReadiness() {
     !cosy?.transcription?.trim() ||
     cosy.transcription_verified === false;
   $("voice-readiness").textContent = !selectedVoice
-    ? "Ajoutez ou choisissez une voix pour commencer."
+    ? tx("ready.none")
     : !reference
-      ? "Préparez cette voix une seule fois dans « Mes voix », puis réutilisez-la pour tous vos textes."
+      ? tx("ready.prepare")
       : !usable
-        ? "CosyVoice a besoin des mots exacts de l’extrait. Vérifiez-les dans « Écouter la voix originale »."
-        : `${selectedVoice.references.length} extrait${selectedVoice.references.length > 1 ? "s" : ""} disponible${selectedVoice.references.length > 1 ? "s" : ""}.`;
+        ? tx("ready.cosy")
+        : tx("ready.refs_" + plural(selectedVoice.references.length), {
+            n: selectedVoice.references.length,
+          });
 }
 function setVoiceState(voice) {
   selectedVoice = voice;
@@ -112,7 +102,7 @@ function previewSelectedReference() {
     referenceRequest++;
     $("reference-result").dataset.reference = "";
     $("reference-result").replaceChildren(
-      elem("p", "Ajoutez un extrait pour écouter cette voix.", "muted"),
+      elem("p", tx("ref.add"), "muted"),
     );
   }
 }
@@ -129,16 +119,14 @@ let durationTimer = null;
 function updateDurationEstimate() {
   const txt = $("text").value;
   const words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
-  $("text-count").textContent =
-    $("text").value.length.toLocaleString("fr-FR") +
-    " / 50 000 caractères (" +
-    words.toLocaleString("fr-FR") +
-    " " +
-    (words > 1 ? "mots" : "mot") +
-    ")";
+  $("text-count").textContent = tx("text.count_" + plural(words), {
+    chars: numl($("text").value.length, 0),
+    max: numl(50000, 0),
+    words: numl(words, 0),
+  });
 
   if (!txt.trim()) {
-    $("duration-estimate").textContent = "Durée estimée : ~0.0 s";
+    $("duration-estimate").textContent = tx("dur.zero", { v: fixed(0, 1) });
     if ($("duration-alert")) $("duration-alert").style.display = "none";
     return;
   }
@@ -152,33 +140,29 @@ function updateDurationEstimate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: txt,
-          language: $("language")?.value || "fr",
+          language: $("language")?.value || getLang(),
           engine: $("engine")?.value || "chatterbox",
           target_duration_seconds: targetSec,
         }),
       });
 
-      $("duration-estimate").textContent =
-        "Durée estimée : ~" +
-        res.estimated_duration_seconds +
-        " s (plage " +
-        res.estimated_duration_min_seconds +
-        "–" +
-        res.estimated_duration_max_seconds +
-        " s, débit " +
-        res.effective_wpm +
-        " mots/min)";
+      $("duration-estimate").textContent = tx("dur.est", {
+        est: numl(res.estimated_duration_seconds),
+        min: numl(res.estimated_duration_min_seconds),
+        max: numl(res.estimated_duration_max_seconds),
+        wpm: numl(res.effective_wpm),
+      });
 
       const alertBox = $("duration-alert");
       if (alertBox) {
         if (res.duration_status === "too_short" || res.duration_status === "too_long") {
           alertBox.style.display = "block";
           alertBox.className = "status warning";
-          alertBox.textContent = res.advice?.message || "Écart avec la durée cible détecté.";
+          alertBox.textContent = res.advice?.message || tx("dur.gap");
         } else if (res.duration_status === "compatible") {
           alertBox.style.display = "block";
           alertBox.className = "status success";
-          alertBox.textContent = res.advice?.message || "Durée compatible avec la cible.";
+          alertBox.textContent = res.advice?.message || tx("dur.ok");
         } else {
           alertBox.style.display = "none";
         }
@@ -205,9 +189,10 @@ async function api(path, options = {}) {
   const d = await r.json();
   if (!r.ok)
     throw Error(
-      (d.error?.code || r.status) +
-        " : " +
-        (d.error?.message || JSON.stringify(d)),
+      tx("err.fmt", {
+        code: d.error?.code || r.status,
+        msg: d.error?.message || JSON.stringify(d),
+      }),
     );
   return d;
 }
@@ -231,19 +216,31 @@ async function refresh() {
       api("/voices"),
     ]);
     const s = health.resources;
-    $("resources").textContent =
-      `RAM disponible : ${s.ram_available_gib.toFixed(2)} Gio · VRAM disponible : ${s.gpu?.free_gib.toFixed(2) ?? "indisponible"} Gio · Disque : ${s.disk_free_gib.toFixed(1)} Gio`;
+    const unit = tx("unit.gib");
+    $("resources").textContent = tx("res.line", {
+      ram: fixed(s.ram_available_gib, 2),
+      vram: s.gpu ? fixed(s.gpu.free_gib, 2) + " " + unit : tx("na"),
+      disk: fixed(s.disk_free_gib, 1),
+      u: unit,
+    });
     $("resources").append(
       elem(
         "p",
-        `Minimum au chargement : ${engines.resource_thresholds.min_ram_gib} Gio de RAM disponible après imports / ${engines.resource_thresholds.min_vram_gib} Gio de VRAM libre.`,
+        tx("res.min", {
+          ram: numl(engines.resource_thresholds.min_ram_gib),
+          vram: numl(engines.resource_thresholds.min_vram_gib),
+          u: unit,
+        }),
       ),
     );
     $("engines").replaceChildren(
       ...engines.engines.map((e) =>
         elem(
           "div",
-          `${e.name} : ${e.ready_to_attempt_load ? "prêt pour un essai de chargement" : "préparation incomplète"}`,
+          tx("eng.line", {
+            name: e.name,
+            state: tx(e.ready_to_attempt_load ? "eng.ready" : "eng.incomplete"),
+          }),
         ),
       ),
     );
@@ -255,7 +252,7 @@ async function refresh() {
             o.value = v.id;
             return o;
           })
-        : [elem("option", "Aucune voix enregistrée")]),
+        : [elem("option", tx("voice.none"))]),
     );
     if (!voices.voices.length) $("voice").firstElementChild.value = "";
     if (voices.voices.some((v) => v.id === previous))
@@ -267,9 +264,7 @@ async function refresh() {
     report("resources", e);
     report(
       "message",
-      Error(
-        "Service PPS indisponible. Ouvrez les réglages pour actualiser la connexion.",
-      ),
+      Error(tx("svc.down")),
     );
   }
 }
@@ -277,14 +272,14 @@ $("import-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const button = e.target.querySelector("button");
   button.disabled = true;
-  $("import-message").textContent = "Préparation audio…";
+  $("import-message").textContent = tx("imp.preparing");
   try {
     const v = await api("/voices", {
       method: "POST",
       headers: { "Idempotency-Key": crypto.randomUUID() },
       body: new FormData(e.target),
     });
-    $("import-message").textContent = "Voix enregistrée : " + v.name;
+    $("import-message").textContent = tx("imp.saved", { name: v.name });
     await refresh();
     $("voice").value = v.id;
     $("voice").dispatchEvent(new Event("change"));
@@ -299,7 +294,7 @@ async function submit(comparison) {
   if (!$("voice").value || !$("text").value.trim()) {
     report(
       "message",
-      Error("Choisissez une voix autorisée et saisissez un texte."),
+      Error(tx("sub.need")),
     );
     return;
   }
@@ -342,10 +337,9 @@ async function submit(comparison) {
       for (const k of Object.keys(names))
         $("" + k + "-result").replaceChildren(
           elem("h3", names[k]),
-          elem("span", "En attente", "badge"),
+          elem("span", statusLabel("queued"), "badge"),
         );
-    $("message").textContent =
-      "Préparation en cours… Le premier essai peut prendre un peu plus de temps.";
+    $("message").textContent = tx("sub.preparing");
     await poll();
   } catch (e) {
     report("message", e);
@@ -355,9 +349,7 @@ async function submit(comparison) {
 function busy(on) {
   generating = on;
   $("cancel").hidden = !on;
-  $("generate").textContent = on
-    ? "Génération en cours…"
-    : "Générer la voix ↗";
+  $("generate").textContent = on ? tx("generating") : tx("generate") + " ↗";
   updateReadiness();
 }
 async function showReference(voiceId, referenceId) {
@@ -380,28 +372,25 @@ async function showReference(voiceId, referenceId) {
     elem("h3", voice.name),
     player,
     elem("p", r.transcription),
-    elem("p", `${r.pcm.duration_seconds.toFixed(1)} secondes`, "metrics"),
+    elem("p", tx("sec.n", { v: fixed(r.pcm.duration_seconds, 1) }), "metrics"),
   );
   const edit = elem("details");
   edit.append(
-    elem("summary", "Corriger / vérifier la transcription de cette référence"),
+    elem("summary", tx("tr.sum")),
   );
   const transcript = elem("textarea");
   transcript.value = r.transcription;
   transcript.maxLength = 5000;
-  transcript.setAttribute(
-    "aria-label",
-    "Transcription corrigée de la référence",
-  );
+  transcript.setAttribute("aria-label", tx("tr.aria"));
   const verified = elem("input");
   verified.type = "checkbox";
   verified.checked = r.transcription_verified !== false && !!r.transcription;
   const label = elem("label");
   label.append(
     verified,
-    document.createTextNode(" J’ai écouté l’extrait et vérifié tous les mots."),
+    document.createTextNode(tx("tr.verified")),
   );
-  const save = elem("button", "Conserver la transcription"),
+  const save = elem("button", tx("tr.save")),
     message = elem("p", "", "status");
   save.type = "button";
   save.onclick = async () => {
@@ -431,9 +420,9 @@ async function showReference(voiceId, referenceId) {
   edit.append(transcript, label, save, message);
   c.append(edit);
   const advanced = elem("details");
-  advanced.append(elem("summary", "Détails de cet extrait"));
+  advanced.append(elem("summary", tx("ref.details")));
   advanced.append(
-    elem("p", `Référence ${r.id} · Version ${voice.version}`, "metrics"),
+    elem("p", tx("ref.id", { id: r.id, v: voice.version }), "metrics"),
   );
   const alignment = await api(
     "/voices/" + voiceId + "/references/" + r.id + "/alignment",
@@ -445,7 +434,15 @@ async function showReference(voiceId, referenceId) {
     advanced.append(
       elem(
         "p",
-        `Score technique : ${m.score.toFixed(1)} / 100 · Cohérence avec les autres références : ${m.consistency_with_saved_voice_cosine == null ? "pas encore mesurée" : m.consistency_with_saved_voice_cosine.toFixed(3) + " (estimation à vérifier à l’écoute)"}`,
+        tx("ref.score", {
+          score: fixed(m.score, 1),
+          cons:
+            m.consistency_with_saved_voice_cosine == null
+              ? tx("ref.cons.none")
+              : tx("ref.cons.val", {
+                  v: fixed(m.consistency_with_saved_voice_cosine, 3),
+                }),
+        }),
         "metrics",
       ),
     );
@@ -460,10 +457,14 @@ function wordPlayer(container, player, alignment, edit = false) {
   const buttons = words.map((w, i) => {
     const b = elem("button", w.text || w.word, "secondary word");
     b.type = "button";
-    b.title = `${w.start.toFixed(3)}–${w.end.toFixed(3)} s · ${w.method || "inconnu"} · ${(w.uncertainty || []).join(", ")}`;
+    b.title = `${fixed(w.start, 3)}–${fixed(w.end, 3)} s · ${w.method || tx("w.unknown")} · ${(w.uncertainty || []).join(", ")}`;
     b.setAttribute(
       "aria-label",
-      `${w.text || w.word}, de ${w.start.toFixed(3)} à ${w.end.toFixed(3)} secondes`,
+      tx("w.aria", {
+        w: w.text || w.word,
+        s: fixed(w.start, 3),
+        e: fixed(w.end, 3),
+      }),
     );
     b.onclick = () => {
       player.currentTime = w.start;
@@ -472,10 +473,10 @@ function wordPlayer(container, player, alignment, edit = false) {
     strip.append(b);
     return b;
   });
-  const clock = elem("p", "0,000 s", "metrics");
+  const clock = elem("p", fixed(0, 3) + " s", "metrics");
   container.append(strip, clock);
   player.addEventListener("timeupdate", () => {
-    clock.textContent = player.currentTime.toFixed(3) + " s";
+    clock.textContent = fixed(player.currentTime, 3) + " s";
     words.forEach((w, i) => {
       const on = player.currentTime >= w.start && player.currentTime < w.end;
       buttons[i].classList.toggle("speaking", on);
@@ -484,18 +485,15 @@ function wordPlayer(container, player, alignment, edit = false) {
   });
   const edits = elem("details");
   edits.append(
-    elem(
-      "summary",
-      "Frontières temporelles · estimation automatique et corrections",
-    ),
+    elem("summary", tx("w.sum")),
   );
   const table = elem("table"),
     head = elem("tr");
   for (const title of [
-    "Mot",
-    "Automatique (s)",
-    "Éffective (s)",
-    "Provenance / incertitudes",
+    tx("w.h.word"),
+    tx("w.h.auto"),
+    tx("w.h.eff"),
+    tx("w.h.src"),
   ])
     head.append(elem("th", title));
   table.append(head);
@@ -506,13 +504,13 @@ function wordPlayer(container, player, alignment, edit = false) {
       cell = elem("td");
     tr.append(
       elem("td", w.text || w.word),
-      elem("td", `${automatic.start.toFixed(3)} → ${automatic.end.toFixed(3)}`),
+      elem("td", `${fixed(automatic.start, 3)} → ${fixed(automatic.end, 3)}`),
     );
     const start = elem("input"),
       end = elem("input");
     for (const [input, value, label] of [
-      [start, w.start, "Début"],
-      [end, w.end, "Fin"],
+      [start, w.start, tx("w.start")],
+      [end, w.end, tx("w.end")],
     ]) {
       input.type = "number";
       input.min = "0";
@@ -520,14 +518,17 @@ function wordPlayer(container, player, alignment, edit = false) {
       input.step = ".001";
       input.value = value.toFixed(3);
       input.disabled = !edit;
-      input.setAttribute("aria-label", label + " de " + (w.text || w.word));
+      input.setAttribute(
+        "aria-label",
+        tx("w.of", { l: label, w: w.text || w.word }),
+      );
       cell.append(input);
     }
     tr.append(cell);
     tr.append(
       elem(
         "td",
-        `${w.method || alignment.timestamp_provenance} · ${w.confidence_status || "incertain"} · ${(w.uncertainty || []).join(", ")}`,
+        `${w.method || alignment.timestamp_provenance} · ${w.confidence_status || tx("w.uncertain")} · ${(w.uncertainty || []).join(", ")}`,
       ),
     );
     table.append(tr);
@@ -543,26 +544,24 @@ async function reviewPanel(c, player, m, currentJob) {
   c.append(
     elem(
       "p",
-      "Alignement : " +
-        alignment.status +
-        " · Sous-titres MainClip : " +
-        (alignment.mainclip_compatible
-          ? "acceptés par la revue"
-          : "bloqués tant que les frontières restent incertaines"),
+      tx("rv.align", {
+        status: alignment.status,
+        mc: tx(alignment.mainclip_compatible ? "rv.mc.ok" : "rv.mc.blocked"),
+      }),
       "metrics",
     ),
   );
   const inputs = wordPlayer(c, player, alignment, true),
     form = elem("form");
   form.className = "review-form";
-  form.append(elem("h4", "Votre écoute · notes de 1 à 5"));
+  form.append(elem("h4", tx("rv.title")));
   const fields = {
-      fidelity: "Fidélité à la référence",
-      naturalness: "Naturel",
-      pronunciation: "Prononciation",
-      expressiveness: "Expressivité",
-      artifacts: "Absence d’artefacts",
-      audio_quality: "Qualité sonore",
+      fidelity: tx("rv.f.fidelity"),
+      naturalness: tx("rv.f.naturalness"),
+      pronunciation: tx("rv.f.pronunciation"),
+      expressiveness: tx("rv.f.expressiveness"),
+      artifacts: tx("rv.f.artifacts"),
+      audio_quality: tx("rv.f.audio_quality"),
     },
     selectors = {};
   for (const [key, label] of Object.entries(fields)) {
@@ -571,7 +570,7 @@ async function reviewPanel(c, player, m, currentJob) {
     l.htmlFor = id;
     const select = elem("select");
     select.id = id;
-    const empty = elem("option", "Non évalué");
+    const empty = elem("option", tx("rv.none"));
     empty.value = "";
     select.append(empty);
     for (let v = 1; v <= 5; v++) {
@@ -585,8 +584,8 @@ async function reviewPanel(c, player, m, currentJob) {
     form.append(l);
   }
   const notes = elem("textarea");
-  notes.placeholder = "Vos observations après écoute";
-  notes.setAttribute("aria-label", "Observations après écoute");
+  notes.placeholder = tx("rv.notes.ph");
+  notes.setAttribute("aria-label", tx("rv.notes.aria"));
   notes.maxLength = 5000;
   notes.value = r.latest?.notes || "";
   const confirmed = elem("input");
@@ -596,11 +595,9 @@ async function reviewPanel(c, player, m, currentJob) {
   confirmation.className = "consent";
   confirmation.append(
     confirmed,
-    document.createTextNode(
-      " J’ai écouté tous les mots et vérifié/corrigé leurs frontières sur cet audio. Autoriser les sous-titres MainClip.",
-    ),
+    document.createTextNode(tx("rv.confirm")),
   );
-  const save = elem("button", "Enregistrer ma revue"),
+  const save = elem("button", tx("rv.save")),
     status = elem("p", "", "status");
   save.type = "submit";
   form.append(notes, confirmation, save, status);
@@ -669,33 +666,56 @@ async function showJob(j) {
     const links = elem("div");
     links.className = "row";
     for (const f of ["wav", "mp3"]) {
-      const l = elem("a", "Télécharger " + f.toUpperCase(), "link");
+      const l = elem("a", tx("dl", { f: f.toUpperCase() }), "link");
       l.href = "/v1/audio/" + j.audio_id + "?format=" + f + "&download=true";
       links.append(l);
     }
     c.append(
       links,
-      elem("p", m.pcm.duration_seconds.toFixed(1) + " secondes", "metrics"),
+      elem("p", tx("sec.n", { v: fixed(m.pcm.duration_seconds, 1) }), "metrics"),
     );
     const review = elem("details");
-    review.append(
-      elem("summary", "Évaluer l’audio et vérifier les sous-titres"),
-    );
+    review.append(elem("summary", tx("job.review")));
     c.append(review);
     await reviewPanel(review, a, m, j);
     const details = elem("details");
     details.className = "technical-details";
-    details.append(elem("summary", "Détails techniques"));
+    details.append(elem("summary", tx("job.tech")));
     const x = j.metrics || m.metrics;
     const durMeta = x.duration_meta || {};
-    let durLine = `Audio : ${m.pcm.duration_seconds.toFixed(2)} s · TTS : ${(x.synthesis_seconds || 0).toFixed(2)} s · RTF : ${(x.real_time_factor || 0).toFixed(2)} · Chargement : ${(x.load_seconds || 0).toFixed(2)} s · File : ${(x.queue_seconds || 0).toFixed(2)} s · Alignement : ${(x.alignment_seconds || 0).toFixed(2)} s`;
+    let durLine = tx("job.l1", {
+      a: fixed(m.pcm.duration_seconds, 2),
+      tts: fixed(x.synthesis_seconds || 0, 2),
+      rtf: fixed(x.real_time_factor || 0, 2),
+      load: fixed(x.load_seconds || 0, 2),
+      q: fixed(x.queue_seconds || 0, 2),
+      al: fixed(x.alignment_seconds || 0, 2),
+    });
     if (durMeta.effective_words_per_minute) {
-      durLine += `\nDébit réel : ${durMeta.effective_words_per_minute} mots/min (${durMeta.spoken_word_count} mots) · Segments : ${x.segments_count || 1}`;
+      durLine +=
+        "\n" +
+        tx("job.l2", {
+          wpm: numl(durMeta.effective_words_per_minute),
+          n: numl(durMeta.spoken_word_count, 0),
+          seg: numl(x.segments_count || 1, 0),
+        });
     }
     if (durMeta.target_duration_seconds) {
-      durLine += ` · Cible : ${durMeta.target_duration_seconds} s (écart ${durMeta.duration_difference_seconds > 0 ? "+" : ""}${durMeta.duration_difference_seconds} s, statut : ${durMeta.duration_status})`;
+      durLine += tx("job.target", {
+        t: numl(durMeta.target_duration_seconds),
+        sign: durMeta.duration_difference_seconds > 0 ? "+" : "",
+        d: numl(durMeta.duration_difference_seconds),
+        status: K_status(durMeta.duration_status),
+      });
     }
-    durLine += `\nRAM worker : ${((x.worker_peak_rss_bytes_observed || 0) / 1024 ** 3).toFixed(2)} Gio · VRAM allouée max : ${((x.cuda_peak_allocated_bytes || 0) / 1024 ** 3).toFixed(2)} Gio · Cache synthèse : ${x.synthesis_cache_hit ? "oui" : "non"}`;
+    durLine +=
+      "\n" +
+      tx("job.l3", {
+        ram: fixed((x.worker_peak_rss_bytes_observed || 0) / 1024 ** 3, 2),
+        vram: fixed((x.cuda_peak_allocated_bytes || 0) / 1024 ** 3, 2),
+        u: tx("unit.gib"),
+        cache: tx(x.synthesis_cache_hit ? "yes" : "no"),
+      });
     details.append(
       elem(
         "p",
@@ -711,14 +731,13 @@ async function showJob(j) {
     details.append(
       elem(
         "p",
-        "Paramètres effectifs : " +
-          JSON.stringify(
+        tx("job.params", {
+          p: JSON.stringify(
             m.effective_engine_options || { ...defaults, ...j.request.options },
-          ) +
-          " · Seed " +
-          j.request.seed +
-          " · Langue " +
-          j.request.language,
+          ),
+          seed: j.request.seed,
+          lang: langName(j.request.language),
+        }),
         "metrics",
       ),
     );
@@ -727,7 +746,11 @@ async function showJob(j) {
       details.append(
         elem(
           "p",
-          `True peak : ${q.true_peak_dbfs} dBFS · Échantillons aux rails : ${q.rails.rail_sample_count} · Clipping mesuré : ${q.rails.clipping_evidence ? "indices présents" : "aucun plateau détecté"} · Audible : à évaluer`,
+          tx("job.quality", {
+            tp: numl(q.true_peak_dbfs),
+            rails: numl(q.rails.rail_sample_count, 0),
+            clip: tx(q.rails.clipping_evidence ? "clip.yes" : "clip.no"),
+          }),
           "metrics",
         ),
       );
@@ -736,7 +759,10 @@ async function showJob(j) {
       details.append(
         elem(
           "p",
-          `Réanalyse hors ligne : ${m.alignment_recheck_seconds.toFixed(2)} s · révision ${m.alignment_revision}`,
+          tx("job.recheck", {
+            s: fixed(m.alignment_recheck_seconds, 2),
+            rev: m.alignment_revision,
+          }),
           "metrics",
         ),
       );
@@ -756,8 +782,8 @@ async function poll() {
       jobs.every((j) => ["completed", "failed", "cancelled"].includes(j.status))
     ) {
       $("message").textContent = jobs.every((j) => j.status === "completed")
-        ? "Résultats disponibles."
-        : "Traitement terminé. Consultez l'état de chaque moteur.";
+        ? tx("poll.ok")
+        : tx("poll.partial");
       busy(false);
       active = [];
       await loadHistory();
@@ -807,10 +833,10 @@ async function loadHistory() {
             elem("p", j.request.text.slice(0, 120)),
             elem(
               "small",
-              new Date(j.created_at * 1000).toLocaleString("fr-FR"),
+              dateTime(j.created_at),
             ),
           );
-          const b = elem("button", "Écouter / télécharger", "secondary");
+          const b = elem("button", tx("history.play"), "secondary");
           b.onclick = async () => {
             navigate("synthesis");
             try {
@@ -826,7 +852,7 @@ async function loadHistory() {
           row.append(description, b);
           return row;
         })
-      : [elem("span", "Vos générations apparaîtront ici.")]),
+      : [elem("span", tx("history.empty"))]),
   );
 }
 $("voice").onchange = () => {
@@ -851,5 +877,38 @@ $("cancel").onclick = async () => {
     report("message", e);
   }
 };
+
+function K_status(status) {
+  const key = "ds." + status;
+  return ppsDictionary[key] ? tx(key) : status;
+}
+// Voreinstellung der Sprachauswahl folgt der Oberflächensprache, solange sie auf einer Voreinstellung steht.
+function syncLanguageDefaults() {
+  for (const id of ["language", "media-language", "voice-language"]) {
+    const select = $(id);
+    if (select && ["de", "fr"].includes(select.value)) select.value = getLang();
+  }
+}
+// Sprachwechsel ohne Neuladen: feste Texte tauscht i18n.js, hier werden die erzeugten Inhalte neu aufgebaut.
+document.addEventListener("pps-lang", () => {
+  syncLanguageDefaults();
+  for (const e of Object.keys(names)) {
+    $(e + "-result").dataset.jobSignature = "";
+    $(e + "-result").replaceChildren(
+      elem("h3", names[e]),
+      elem("p", tx("results.empty", { engine: names[e] }), "empty-result"),
+    );
+  }
+  $("reference-result").dataset.reference = "";
+  $("message").replaceChildren();
+  navigate(currentView, false);
+  busy(generating);
+  updateDurationEstimate();
+  updateReadiness();
+  if (!selectedVoice) previewSelectedReference();
+  refresh();
+});
+syncLanguageDefaults();
+updateDurationEstimate();
 updateReadiness();
 refresh();

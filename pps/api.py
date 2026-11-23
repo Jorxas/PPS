@@ -50,7 +50,7 @@ class Comparison(BaseModel):
     engine_reference_ids: dict[str, str] = Field(default_factory=dict)
     text: str = Field(min_length=1, max_length=50000)
     display_text: str | None = Field(default=None, max_length=50000)
-    language: Literal["fr", "en"] = "fr"
+    language: Literal["fr", "en", "de"] = "fr"
     engine_options: dict[str, dict[str, float]] = Field(default_factory=dict)
     seed: int = Field(default=1986, ge=0, le=2**32-1)
     target_duration_seconds: float | None = Field(default=None, gt=0, le=3600)
@@ -73,7 +73,7 @@ class MediaUpload(BaseModel):
     fingerprint: str = Field(pattern=r'^[0-9a-f]{64}$')
     voice_id: str | None = None
     name: str = Field(default='',max_length=120)
-    language: Literal['fr','en'] = 'fr'
+    language: Literal['fr','en','de'] = 'fr'
     authorized: bool = False
     declaration: str = Field(default='',max_length=2000)
 
@@ -84,7 +84,7 @@ class ReferenceTrials(BaseModel):
     reference_ids: list[str] = Field(min_length=2,max_length=8)
     engine: Literal['both','chatterbox','cosyvoice'] = 'both'
     text: str = Field(min_length=1,max_length=50000)
-    language: Literal['fr','en'] = 'fr'
+    language: Literal['fr','en','de'] = 'fr'
     engine_options: dict[str,dict[str,float]] = Field(default_factory=dict)
     seed: int = Field(default=1986,ge=0,le=2**32-1)
     alignment_mode: Literal['full', 'quick'] = 'full'
@@ -121,7 +121,7 @@ class MediaReference(BaseModel):
     speaker_confirmed: bool = False
     transcription: str = Field(default='',max_length=5000)
     transcription_verified: bool = False
-    language: Literal['fr','en'] = 'fr'
+    language: Literal['fr','en','de'] = 'fr'
 
 
 class ReferenceChoice(BaseModel):

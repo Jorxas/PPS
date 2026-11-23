@@ -10,7 +10,7 @@ Ein unabhängiger Dienst verwaltet Referenzstimmen, Syntheseaufträge, Ressource
 
 ## Ausprobieren
 
-Die öffentliche Demo führt die echte Weboberfläche des Dienstes aus (`pps/web.html`, `pps/static/*`), unverändert. Nur der lokale Dienst fehlt: `demo/demo-start.js` beantwortet die Anfragen an `/v1/*` mit erfundenen Fällen (drei Stimmen, ein Vergleich, fünf Aufträge, eine Stimmenvorbereitung). Die Audios sind kurze synthetische Testsignale, keine Sprache. Eine echte Synthese, ein Dateiimport und die Dokumentationsseite sind dort nicht verfügbar und als solche gekennzeichnet; es werden keine Modelle, Konten oder Anbieter angesprochen.
+Die öffentliche Demo führt die echte Weboberfläche des Dienstes aus (`pps/web.html`, `pps/static/*`), unverändert. Nur der lokale Dienst fehlt: `demo/demo-start.js` beantwortet die Anfragen an `/v1/*` mit erfundenen Fällen (drei Stimmen, ein Vergleich, fünf Aufträge, eine Stimmenvorbereitung). Die Audios sind kurze synthetische Testsignale, keine Sprache. Eine echte Synthese, ein Dateiimport und die Dokumentationsseite sind dort nicht verfügbar und als solche gekennzeichnet; es werden keine Modelle, Konten oder Anbieter angesprochen. Die Oberfläche ist zweisprachig: Deutsch ist die Voreinstellung, Französisch (die ursprüngliche Sprache der Oberfläche) lässt sich über den Schalter DE | FR im Demo-Hinweis oder mit `?lang=fr` wählen. Alle Texte stehen in `pps/static/i18n.js`, die erfundenen Fälle und Meldungen in beiden Sprachen in `demo/demo-start.js`.
 
 ## Demo bauen und prüfen
 
@@ -34,7 +34,7 @@ Die genauen geprüften Befehle und Grenzen stehen in [PRUEFUNG.md](PRUEFUNG.md).
 
 ## Herkunft
 
-Dies ist eine für die Veröffentlichung geprüfte Ableitung eines bestehenden lokalen Projekts. [HERKUNFT.md](HERKUNFT.md) trennt den ursprünglichen Entwicklungsstand von den jetzt ausgeführten Veröffentlichungsarbeiten. Die ursprünglichen Oberflächen und technischen Bezeichner sind teilweise französisch oder englisch. Neue Präsentation und Dokumentation sind deutsch.
+Dies ist eine für die Veröffentlichung geprüfte Ableitung eines bestehenden lokalen Projekts. [HERKUNFT.md](HERKUNFT.md) trennt den ursprünglichen Entwicklungsstand von den jetzt ausgeführten Veröffentlichungsarbeiten. Die ursprüngliche Oberfläche war französisch; sie ist jetzt zweisprachig (Deutsch Standard, Französisch wählbar). Technische Bezeichner und die Fehlermeldungen des Python-Dienstes sind teilweise französisch oder englisch. Neue Präsentation und Dokumentation sind deutsch.
 
 ## Rechte und Abhängigkeiten
 

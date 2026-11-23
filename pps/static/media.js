@@ -10,7 +10,7 @@
       .toString()
       .padStart(2, "0")}:${Math.floor((n % 3600) / 60)
       .toString()
-      .padStart(2, "0")}:${(n % 60).toFixed(2).padStart(5, "0")}`;
+      .padStart(2, "0")}:${fixed(n % 60, 2).padStart(5, "0")}`;
   let transfer = null,
     libraryTimer = null,
     voices = [],
@@ -46,7 +46,7 @@
   async function loadVoices() {
     voices = (await api("/voices")).voices;
     const selected = $("media-voice").value;
-    const empty = elem("option", "Créer une voix");
+    const empty = elem("option", tx("mv.create"));
     empty.value = "";
     $("media-voice").replaceChildren(
       empty,
@@ -59,7 +59,7 @@
     if (voices.some((v) => v.id === selected))
       $("media-voice").value = selected;
     const filtered = $("media-filter").value,
-      all = elem("option", "Toutes les voix");
+      all = elem("option", tx("filter.all"));
     all.value = "";
     $("media-filter").replaceChildren(
       all,
@@ -86,20 +86,17 @@
               elem("h3", v.name),
               elem(
                 "p",
-                (v.language === "fr" ? "Français" : "Anglais") +
-                  " · " +
-                  v.references.length +
-                  " extrait" +
-                  (v.references.length > 1 ? "s" : ""),
+                tx("card.sub_" + plural(v.references.length), {
+                  lang: langName(v.language),
+                  n: v.references.length,
+                }),
                 "muted",
               ),
             );
             card.append(
               elem(
                 "p",
-                v.references.length
-                  ? "Extrait enregistré. Vous pouvez utiliser cette voix."
-                  : "PPS peut préparer automatiquement cette voix depuis vos fichiers.",
+                v.references.length ? tx("card.saved") : tx("card.prep_help"),
                 "field-help",
               ),
             );
@@ -107,9 +104,7 @@
             actions.className = "row";
             actions.append(
               button(
-                v.references.length
-                  ? "Utiliser cette voix"
-                  : "Préparer cette voix",
+                v.references.length ? tx("card.use") : tx("card.prepare"),
                 async () => {
                   if (!v.references.length) {
                     const sources = (await api("/media")).media.filter(
@@ -129,7 +124,7 @@
                   $("text").focus();
                 },
               ),
-              button("Ajouter des fichiers", async () => addVoice(v.id)),
+              button(tx("card.files"), async () => addVoice(v.id)),
             );
             card.append(actions);
             return card;
@@ -139,13 +134,9 @@
               const empty = elem("div");
               empty.className = "empty-voices";
               empty.append(
-                elem("h2", "Votre première voix"),
-                elem(
-                  "p",
-                  "Ajoutez une vidéo ou un audio pour créer votre voix.",
-                  "muted",
-                ),
-                button("+ Ajouter une voix", async () => addVoice()),
+                elem("h2", tx("empty.title")),
+                elem("p", tx("empty.text"), "muted"),
+                button(tx("add.voice"), async () => addVoice()),
               );
               return empty;
             })(),
@@ -171,7 +162,7 @@
         label.append(
           check,
           document.createTextNode(
-            r.filename + " · " + r.pcm.duration_seconds.toFixed(1) + " s",
+            r.filename + " · " + fixed(r.pcm.duration_seconds, 1) + " s",
           ),
         );
         return label;
@@ -179,7 +170,7 @@
     );
     for (const engine of Object.keys(names)) {
       const select = $(engine + "-reference"),
-        fallback = elem("option", "Référence enregistrée");
+        fallback = elem("option", tx("ref.saved"));
       fallback.value = "";
       select.replaceChildren(
         fallback,
@@ -188,10 +179,10 @@
             "option",
             r.filename +
               " · " +
-              r.pcm.duration_seconds.toFixed(1) +
+              fixed(r.pcm.duration_seconds, 1) +
               " s" +
               (engine === "cosyvoice" && r.transcription_verified === false
-                ? " · transcription à vérifier"
+                ? tx("opt.tr_check")
                 : ""),
           );
           o.value = r.id;
@@ -212,8 +203,9 @@
           "/voices/" + $("voice").value + "/engine-reference",
           json("PUT", { engine, reference_id: reference }),
         );
-        $("reference-choice-message").textContent =
-          "Choix conservé pour " + names[engine];
+        $("reference-choice-message").textContent = tx("ref.kept", {
+          engine: names[engine],
+        });
         await referenceChoices();
       } catch (e) {
         report("reference-choice-message", e);
@@ -228,10 +220,10 @@
         .reverse()
         .map((t) =>
           button(
-            new Date(t.created_at * 1000).toLocaleString("fr-FR") +
-              " · " +
-              t.reference_ids.length +
-              " références",
+            tx("trial.n", {
+              date: dateTime(t.created_at),
+              n: t.reference_ids.length,
+            }),
             async () => {
               trialId = t.id;
               $("trial-results").replaceChildren();
@@ -249,8 +241,8 @@
       $("trial-cancel").hidden = t.finished;
       $("trial-start").disabled = !t.finished;
       $("trial-message").textContent = t.finished
-        ? "Essais terminés. Écoutez et choisissez votre référence ; aucun gagnant automatique."
-        : "Essais en cours, un moteur à la fois.";
+        ? tx("trial.done")
+        : tx("trial.running");
       for (const j of t.jobs) {
         const id = "trial-result-" + j.id;
         let card = $(id);
@@ -272,7 +264,7 @@
             "h4",
             names[j.request.engine] +
               " · " +
-              (reference?.filename || "Extrait vocal"),
+              (reference?.filename || tx("trial.clip")),
           ),
           elem("span", statusLabel(j.status), "badge"),
         );
@@ -286,10 +278,19 @@
             player,
             elem(
               "p",
-              `Synthèse : ${(j.metrics.synthesis_seconds || 0).toFixed(2)} s · Chargement : ${(j.metrics.load_seconds || 0).toFixed(2)} s · RAM : ${((j.metrics.worker_peak_rss_bytes_observed || 0) / 1024 ** 3).toFixed(2)} Gio · Résultat en cache : ${j.metrics.synthesis_cache_hit ? "oui" : "non"}`,
+              tx("trial.metrics", {
+                s: fixed(j.metrics.synthesis_seconds || 0, 2),
+                l: fixed(j.metrics.load_seconds || 0, 2),
+                r: fixed(
+                  (j.metrics.worker_peak_rss_bytes_observed || 0) / 1024 ** 3,
+                  2,
+                ),
+                u: tx("unit.gib"),
+                c: tx(j.metrics.synthesis_cache_hit ? "yes" : "no"),
+              }),
               "metrics",
             ),
-            button("Évaluer ce résultat", async () => {
+            button(tx("trial.eval"), async () => {
               navigate("synthesis");
               await showJob(j);
               $(j.request.engine + "-result").scrollIntoView({
@@ -297,7 +298,7 @@
               });
             }),
             button(
-              "Utiliser cette référence pour " + names[j.request.engine],
+              tx("trial.use", { engine: names[j.request.engine] }),
               async () => {
                 await api(
                   "/voices/" + t.voice_id + "/engine-reference",
@@ -308,8 +309,9 @@
                 );
                 $("voice").value = t.voice_id;
                 await referenceChoices();
-                $("trial-message").textContent =
-                  "Choix enregistré pour " + names[j.request.engine];
+                $("trial-message").textContent = tx("trial.saved", {
+                  engine: names[j.request.engine],
+                });
               },
             ),
           );
@@ -328,9 +330,9 @@
         $("trial-reference-list").querySelectorAll("input:checked"),
       ).map((x) => x.value);
       if (refs.length < 2 || refs.length > 8)
-        throw Error("Choisissez entre 2 et 8 références de cette voix.");
+        throw Error(tx("trial.err.count"));
       if (!$("text").value.trim())
-        throw Error("Saisissez le texte commun à prononcer.");
+        throw Error(tx("trial.err.text"));
       $("trial-start").disabled = true;
       const t = await api("/reference-trials", {
         ...json("POST", {
@@ -382,7 +384,10 @@
   $("media-files").onchange = () => {
     $("media-file-list").replaceChildren(
       ...Array.from($("media-files").files).map((f) =>
-        elem("div", `${f.name} · ${(f.size / 1024 ** 2).toFixed(1)} Mo`),
+        elem(
+          "div",
+          `${f.name} · ${tx("up.mb", { n: fixed(f.size / 1024 ** 2, 1) })}`,
+        ),
       ),
     );
   };
@@ -412,27 +417,25 @@
     if (!$("media-authorized").checked) {
       error(
         $("media-message"),
-        Error(
-          "Confirmez que vous avez le droit de cloner et d’utiliser cette voix.",
-        ),
+        Error(tx("up.consent")),
       );
       return;
     }
     if (!$("media-files").files.length) {
-      error($("media-message"), Error("Choisissez au moins un fichier."));
+      error($("media-message"), Error(tx("up.nofile")));
       return;
     }
     const agreement =
       $("media-origin").value === "own"
-        ? "Ma propre voix, clonage et utilisation avec mon accord."
+        ? tx("up.own")
         : $("media-origin").value === "permission"
-          ? "Voix d’une personne dont j’ai obtenu l’accord pour le clonage et l’utilisation."
-          : "Je confirme disposer du droit de cloner et d’utiliser la voix contenue dans les fichiers sélectionnés.";
+          ? tx("up.perm")
+          : tx("up.default");
     $("media-declaration").value =
       agreement +
       ($("media-source").value.trim()
-        ? " Origine des fichiers : " + $("media-source").value.trim()
-        : " Fichiers sélectionnés par l’utilisateur, noms conservés dans la provenance.");
+        ? tx("up.origin", { s: $("media-source").value.trim() })
+        : tx("up.origin.default"));
     transfer = new AbortController();
     $("media-upload").disabled = true;
     $("media-upload-cancel").hidden = false;
@@ -442,9 +445,7 @@
     try {
       for (const file of $("media-files").files) {
         if (transfer.signal.aborted)
-          throw Error(
-            "Transfert interrompu. Sélectionnez les mêmes fichiers pour reprendre.",
-          );
+          throw Error(tx("up.aborted"));
         const fp = await fingerprint(file),
           key = "pps-media-upload:" + fp,
           prior = localStorage.getItem(key);
@@ -457,9 +458,7 @@
           }
         }
         if (m && voiceId && m.voice_id !== voiceId)
-          throw Error(
-            "Ce fichier est déjà associé à une autre voix. Choisissez cette voix pour reprendre.",
-          );
+          throw Error(tx("up.other"));
         if (!m) {
           m = await api(
             "/media/uploads",
@@ -480,8 +479,10 @@
         mediaIds.push(m.id);
         if (m.status === "ready") continue;
         for (let offset = m.received_bytes; offset < file.size; ) {
-          $("media-message").textContent =
-            `${file.name} : ${((100 * offset) / file.size).toFixed(1)} % transférés`;
+          $("media-message").textContent = tx("up.progress", {
+            f: file.name,
+            p: fixed((100 * offset) / file.size, 1),
+          });
           m = await api("/media/uploads/" + m.id + "?offset=" + offset, {
             method: "PUT",
             body: file.slice(
@@ -492,12 +493,10 @@
           });
           offset = m.received_bytes;
         }
-        $("media-message").textContent =
-          "Vérification des pistes : " + file.name;
+        $("media-message").textContent = tx("up.verify", { f: file.name });
         await api("/media/uploads/" + m.id + "/complete", { method: "POST" });
       }
-      $("media-message").textContent =
-        "Import terminé. PPS prépare automatiquement votre voix…";
+      $("media-message").textContent = tx("up.done");
       await refresh();
       await loadVoices();
       $("media-voice").value = voiceId;
@@ -513,9 +512,7 @@
       error(
         $("media-message"),
         e.name === "AbortError"
-          ? Error(
-              "Transfert interrompu. Resélectionnez le fichier pour reprendre au dernier bloc reçu.",
-            )
+          ? Error(tx("up.aborted2"))
           : e,
       );
     } finally {
@@ -534,9 +531,12 @@
     card.append(
       elem(
         "h4",
-        `Extrait ${index + 1} · ${(c.end_seconds - c.start_seconds).toFixed(1)} secondes`,
+        tx("cand.title", {
+          i: index + 1,
+          d: fixed(c.end_seconds - c.start_seconds, 1),
+        }),
       ),
-      elem("p", `À ${clock(c.start_seconds)} dans le fichier`, "metrics"),
+      elem("p", tx("cand.at", { t: clock(c.start_seconds) }), "metrics"),
     );
     const player = elem("audio");
     player.controls = true;
@@ -545,11 +545,7 @@
     card.append(player);
     if (m.speaker_status === "suspected_multiple")
       card.append(
-        elem(
-          "p",
-          "Plusieurs voix sont suspectées. Vérifiez que cet extrait contient seulement la personne choisie.",
-          "notice",
-        ),
+        elem("p", tx("cand.multi"), "notice"),
       );
     if (
       m.music_status === "suspected_music" ||
@@ -557,62 +553,48 @@
       m.echo_status === "suspected_repetition"
     )
       card.append(
-        elem(
-          "p",
-          "Un bruit, de la musique ou des répétitions sont suspectés. Vérifiez à l’écoute.",
-          "notice",
-        ),
+        elem("p", tx("cand.noise"), "notice"),
       );
     const setup = elem("details");
     setup.className = "candidate-setup";
     setup.append(
       elem(
         "summary",
-        c.saved_reference_id
-          ? "Extrait enregistré · vérifier ou utiliser"
-          : "Choisir cet extrait pour ma voix",
+        c.saved_reference_id ? tx("cand.sum.saved") : tx("cand.sum.choose"),
       ),
-      elem(
-        "p",
-        "Écoutez l’extrait. Faites proposer sa transcription, puis corrigez les mots si nécessaire.",
-        "field-help",
-      ),
+      elem("p", tx("cand.help"), "field-help"),
     );
     const transcript = elem("textarea");
     transcript.value = c.transcription?.text || "";
     transcript.maxLength = 5000;
-    transcript.placeholder = "Les mots exacts prononcés dans cet extrait";
-    transcript.setAttribute("aria-label", "Mots prononcés dans cet extrait");
+    transcript.placeholder = tx("cand.tr.ph");
+    transcript.setAttribute("aria-label", tx("cand.tr.aria"));
     const asrStatus = elem(
       "p",
-      c.transcription
-        ? "Ces mots ont été proposés automatiquement. Vérifiez-les à l’écoute."
-        : "Pour CosyVoice, les mots prononcés doivent être vérifiés.",
+      c.transcription ? tx("cand.asr.auto") : tx("cand.asr.need"),
       "field-help",
     );
     const lang = elem("select");
-    lang.setAttribute("aria-label", "Langue de cet extrait");
-    for (const [value, label] of [
-      ["fr", "Français"],
-      ["en", "Anglais"],
-    ]) {
-      const o = elem("option", label);
+    lang.setAttribute("aria-label", tx("cand.lang.aria"));
+    for (const value of ["de", "en", "fr"]) {
+      const o = elem("option", langName(value));
       o.value = value;
       lang.append(o);
     }
-    if (["fr", "en"].includes(c.transcription?.language))
+    lang.value = getLang();
+    if (["de", "en", "fr"].includes(c.transcription?.language))
       lang.value = c.transcription.language;
     setup.append(
-      button("Proposer les mots prononcés", async () => {
-        asrStatus.textContent = "Transcription en cours…";
+      button(tx("cand.suggest"), async () => {
+        asrStatus.textContent = tx("cand.transcribing");
         try {
           const updated = await api(
             `/media/analyses/${analysis.id}/candidates/${c.id}/transcribe`,
             { method: "POST" },
           );
           transcript.value = updated.transcription.text;
-          asrStatus.textContent = "Vérifiez et corrigez ces mots après écoute.";
-          if (["fr", "en"].includes(updated.transcription.language))
+          asrStatus.textContent = tx("cand.check");
+          if (["de", "en", "fr"].includes(updated.transcription.language))
             lang.value = updated.transcription.language;
         } catch (e) {
           error(asrStatus, e);
@@ -629,32 +611,24 @@
     speakerLabel.className = "consent";
     speakerLabel.append(
       speaker,
-      document.createTextNode(
-        " J’ai écouté : une seule voix, celle de la personne autorisée, sans musique gênante.",
-      ),
+      document.createTextNode(tx("cand.speaker")),
     );
     const verifiedLabel = elem("label");
     verifiedLabel.className = "consent";
     verifiedLabel.append(
       verified,
-      document.createTextNode(
-        " J’ai vérifié et corrigé tous les mots. Nécessaire pour CosyVoice.",
-      ),
+      document.createTextNode(tx("cand.verified")),
     );
     const saveStatus = elem(
       "p",
-      c.saved_reference_id
-        ? "Cet extrait est déjà disponible dans votre voix."
-        : "",
+      c.saved_reference_id ? tx("cand.already") : "",
       "status",
     );
-    const save = button("Enregistrer cet extrait", async () => {
+    const save = button(tx("cand.save"), async () => {
       if (!speaker.checked) {
         error(
           saveStatus,
-          Error(
-            "Écoutez cet extrait, puis confirmez qu’il contient uniquement la voix autorisée.",
-          ),
+          Error(tx("cand.err.speaker")),
         );
         return;
       }
@@ -668,13 +642,9 @@
             language: lang.value,
           }),
         );
-        saveStatus.textContent =
-          "Extrait enregistré. Votre voix est prête à être utilisée.";
+        saveStatus.textContent = tx("cand.saved.ok");
         $("media-message").className = "status";
-        $("media-message").textContent =
-          "Extrait enregistré dans « " +
-          v.name +
-          " ». Cliquez sur « Utiliser cette voix » pour écrire votre texte.";
+        $("media-message").textContent = tx("cand.saved.msg", { name: v.name });
         await refresh();
         $("voice").value = v.id;
         await referenceChoices();
@@ -687,7 +657,7 @@
     if (c.saved_reference_id) {
       for (const engine of Object.keys(names))
         setup.append(
-          button("Utiliser avec " + names[engine], async () => {
+          button(tx("cand.use", { engine: names[engine] }), async () => {
             await api(
               "/voices/" + analysis.voice_id + "/engine-reference",
               json("PUT", { engine, reference_id: c.saved_reference_id }),
@@ -702,14 +672,14 @@
     }
     card.append(setup);
     const trimming = elem("details");
-    trimming.append(elem("summary", "Ajuster le début et la fin"));
+    trimming.append(elem("summary", tx("cand.trim")));
     const range = elem("div");
     range.className = "row range-inputs";
     const start = elem("input"),
       end = elem("input");
     for (const [input, value, title] of [
-      [start, c.start_seconds, "Début (secondes)"],
-      [end, c.end_seconds, "Fin (secondes)"],
+      [start, c.start_seconds, tx("range.start")],
+      [end, c.end_seconds, tx("range.end")],
     ]) {
       input.type = "number";
       input.min = "0";
@@ -722,7 +692,7 @@
       range.append(label);
     }
     range.append(
-      button("Rechercher dans ce passage", async () => {
+      button(tx("cand.search"), async () => {
         await api(
           "/media/analyses/" + analysis.id + "/candidates",
           json("POST", {
@@ -737,10 +707,10 @@
     card.append(trimming);
     const details = elem("details");
     details.append(
-      elem("summary", "Score et détails de l’extrait"),
+      elem("summary", tx("cand.score.sum")),
       elem(
         "p",
-        `Score technique : ${score.toFixed(1)} / 100. Il aide à choisir un extrait ; écoutez-le pour juger la voix.`,
+        tx("cand.score.help", { s: fixed(score, 1) }),
         "field-help",
       ),
       elem(
@@ -768,20 +738,17 @@
       const progress = elem("progress");
       progress.max = 1;
       progress.value = a.progress;
-      progress.setAttribute(
-        "aria-label",
-        "Progression de la recherche des extraits",
-      );
+      progress.setAttribute("aria-label", tx("an.aria"));
       block.append(
         elem(
           "p",
           a.phase === "extracting_audio"
-            ? "Préparation de l’audio…"
-            : `Recherche des extraits… ${Math.round((a.progress || 0) * 100)} %`,
+            ? tx("an.extract")
+            : tx("an.search", { p: Math.round((a.progress || 0) * 100) }),
           "status",
         ),
         progress,
-        button("Annuler la recherche", async () => {
+        button(tx("an.cancel"), async () => {
           await api("/media/analyses/" + a.id + "/cancel", { method: "POST" });
           await library();
         }),
@@ -791,18 +758,14 @@
     if (a.error) block.append(elem("p", a.error.message, "error"));
     if (["paused", "cancelled", "failed"].includes(a.status))
       block.append(
-        button("Reprendre la recherche", async () => {
+        button(tx("an.resume"), async () => {
           await api("/media/analyses/" + a.id + "/resume", { method: "POST" });
           await library();
         }),
       );
     if (a.candidates.length) {
       block.append(
-        elem(
-          "p",
-          "Écoutez un extrait, puis cliquez sur « Choisir cet extrait pour ma voix ».",
-          "file-subheading",
-        ),
+        elem("p", tx("an.hint"), "file-subheading"),
       );
       a.candidates
         .slice(0, 3)
@@ -810,10 +773,7 @@
       if (a.candidates.length > 3) {
         const more = elem("details");
         more.append(
-          elem(
-            "summary",
-            "Voir les " + (a.candidates.length - 3) + " autres extraits",
-          ),
+          elem("summary", tx("an.more", { n: a.candidates.length - 3 })),
         );
         a.candidates
           .slice(3)
@@ -822,23 +782,17 @@
       }
     } else
       block.append(
-        elem(
-          "p",
-          "Aucun extrait proposé. Vous pouvez choisir un passage ci-dessous.",
-          "muted",
-        ),
+        elem("p", tx("an.none"), "muted"),
       );
     const manual = elem("details");
-    manual.append(
-      elem("summary", "Choisir moi-même un passage (3 à 30 secondes)"),
-    );
+    manual.append(elem("summary", tx("an.manual")));
     const range = elem("div");
     range.className = "row range-inputs";
     const start = elem("input"),
       end = elem("input");
     for (const [input, value, title] of [
-      [start, 0, "Début (secondes)"],
-      [end, Math.min(10, a.total_seconds), "Fin (secondes)"],
+      [start, 0, tx("range.start")],
+      [end, Math.min(10, a.total_seconds), tx("range.end")],
     ]) {
       input.type = "number";
       input.value = value;
@@ -851,7 +805,7 @@
       range.append(label);
     }
     range.append(
-      button("Écouter ce passage", async () => {
+      button(tx("an.listen"), async () => {
         await api(
           "/media/analyses/" + a.id + "/candidates",
           json("POST", {
@@ -913,45 +867,43 @@
             (name ? name + " · " : "") +
               (m.probe
                 ? clock(m.probe.duration_seconds)
-                : "Import : " +
-                  ((100 * m.received_bytes) / m.size_bytes).toFixed(0) +
-                  " %"),
+                : tx("lib.import", {
+                    p: fixed((100 * m.received_bytes) / m.size_bytes, 0),
+                  })),
             "metrics",
           ),
         );
         if (m.error) section.append(elem("p", m.error.message, "error"));
         if (m.status !== "ready") continue;
         const tracks = elem("select");
-        tracks.setAttribute("aria-label", "Piste audio de " + m.filename);
+        tracks.setAttribute("aria-label", tx("lib.track.aria", { f: m.filename }));
         for (const t of m.probe.audio_tracks) {
           const o = elem(
             "option",
-            `Piste audio ${t.index} · ${t.tags.language || "Langue non indiquée"} ${t.tags.title || ""}`,
+            tx("lib.track", {
+              i: t.index,
+              lang: t.tags.language || tx("lib.nolang"),
+              title: t.tags.title || "",
+            }),
           );
           o.value = t.index;
           tracks.append(o);
         }
         if (m.probe.audio_tracks.length > 1) {
-          const o = elem("option", "Choisir une piste audio…");
+          const o = elem("option", tx("lib.pick"));
           o.value = "";
           tracks.prepend(o);
           tracks.value = "";
           section.append(
-            elem(
-              "p",
-              "Ce fichier contient plusieurs pistes audio. Choisissez celle qui contient votre voix.",
-              "field-help",
-            ),
+            elem("p", tx("lib.multi"), "field-help"),
           );
         } else tracks.hidden = true;
         section.append(tracks);
         if (!analyses.length || m.probe.audio_tracks.length > 1)
           section.append(
-            button("Créer la voix automatiquement", async () => {
+            button(tx("lib.auto"), async () => {
               if (tracks.value === "")
-                throw Error(
-                  "Choisissez la piste audio qui contient votre voix.",
-                );
+                throw Error(tx("lib.err.pick"));
               await window.startVoicePreparation(m.voice_id, [m.id], {
                 [m.id]: Number(tracks.value),
               });
@@ -965,13 +917,9 @@
         if (analyses.length) {
           const advanced = elem("details");
           advanced.append(
-            elem(
-              "summary",
-              "Relancer la recherche / consulter les recherches précédentes",
-            ),
-            button("Nouvelle recherche d’extraits", async () => {
-              if (tracks.value === "")
-                throw Error("Choisissez une piste audio.");
+            elem("summary", tx("lib.rerun")),
+            button(tx("lib.new"), async () => {
+              if (tracks.value === "") throw Error(tx("lib.err.pick2"));
               await api(
                 "/media/" + m.id + "/analyses",
                 json("POST", {
@@ -989,11 +937,7 @@
             old.append(
               elem(
                 "summary",
-                "Recherche précédente · Piste " +
-                  a.track_index +
-                  " · " +
-                  a.candidates.length +
-                  " extraits",
+                tx("lib.prev", { i: a.track_index, n: a.candidates.length }),
               ),
             );
             old.append(analysisCard(a));
@@ -1010,6 +954,16 @@
       report("media-message", e);
     }
   }
+  // Sprachwechsel: erzeugte Inhalte neu aufbauen (die Stimmen kommen über "pps-voices" aus refresh()).
+  document.addEventListener("pps-lang", () => {
+    $("trial-results").replaceChildren();
+    for (const section of $("media-library").children)
+      section.dataset.signature = "";
+    $("trial-message").textContent = "";
+    Promise.all([library(), trialsHistory()]).catch((e) =>
+      report("media-message", e),
+    );
+  });
   // Re-evaluate selected voice after the existing refresh populates its dropdown.
   new MutationObserver(() => {
     if ($("voice").value && $("voice").value !== lastVoice)
